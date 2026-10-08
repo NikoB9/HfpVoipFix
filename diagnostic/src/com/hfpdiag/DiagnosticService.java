@@ -2,7 +2,7 @@ package com.hfpdiag;
 import android.app.*;import android.content.*;import android.os.*;import android.util.Log;
 import java.io.*;import java.util.*;import java.util.concurrent.*;import java.util.zip.*;
 public final class DiagnosticService extends Service {
- private ExecutorService worker=Executors.newSingleThreadExecutor();private Process logger;
+ private ExecutorService worker=Executors.newSingleThreadExecutor();private java.lang.Process logger;
  private File file(String s){return new File(getFilesDir(),s);}
  private void write(String name,String value)throws Exception{try(FileOutputStream out=new FileOutputStream(file(name))){out.write(value.getBytes("UTF-8"));}}
  @Override public void onCreate(){super.onCreate();if(Build.VERSION.SDK_INT>=26){NotificationManager m=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);m.createNotificationChannel(new NotificationChannel("hfpdiag","HFP Diagnostic",NotificationManager.IMPORTANCE_LOW));}}
