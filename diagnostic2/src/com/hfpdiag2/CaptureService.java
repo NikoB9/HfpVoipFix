@@ -8,6 +8,20 @@ public final class CaptureService extends Service {
  private Thread logThread;
  private volatile boolean capturing=false;
  private volatile int count=0;
+ private volatile int scanned=0;
+ private volatile int skipped=0;
+ private static final int MAX_EVENTS=120000;
+ private static final long MAX_BYTES=24000000L;
+ private volatile long bytes=0;
+ private volatile boolean truncated=false;
+ private static boolean relevant(String line){
+   String l=line.toLowerCase(java.util.Locale.ROOT);
+   return l.contains("hfpvoipfix") || l.contains("hfpclient") || l.contains("headsetclient")
+       || l.contains("telecom-") || l.contains("audioalsa") || l.contains("audiobtcvsd")
+       || l.contains("audioflinger") || l.contains("audiopolicy") || l.contains("audiosystem")
+       || l.contains("apm_") || l.contains("bluetoothheadset") || l.contains("sco")
+       || l.contains("btif_hf") || l.contains("hfpdiag") || l.contains("hfp_enable");
+ }
  private volatile String error="";
  private File file(String n){return new File(getFilesDir(),n);}
  private void state(String phase,String msg){
@@ -34,7 +48,7 @@ public final class CaptureService extends Service {
  }
  private void start(){
   if(capturing)return;
-  count=0;error="";
+  count=0;scanned=0;skipped=0;bytes=0;truncated=false;error="";
   for(String f:new String[]{"logcat.txt","avant.txt","pendant.txt","apres.txt","config.txt","HFP-Rapport.zip"})file(f).delete();
   state("starting","Vérification des droits Magisk...");
   try{
@@ -46,11 +60,15 @@ public final class CaptureService extends Service {
     try(BufferedReader in=new BufferedReader(new InputStreamReader(logProcess.getInputStream(),StandardCharsets.UTF_8));
         BufferedWriter out=new BufferedWriter(new FileWriter(file("logcat.txt")))){
      String line;while(capturing&&(line=in.readLine())!=null){
-      if(count<30000){out.write(line);out.newLine();count++;}
-      if(count%100==0)out.flush();
+      scanned++;
+      if(!relevant(line)){skipped++;continue;}
+      int length=line.length()+1;
+      if(count>=MAX_EVENTS || bytes+length>MAX_BYTES){truncated=true;continue;}
+      out.write(line);out.newLine();count++;bytes+=length;
+      if(count%150==0){out.flush();state("running","Capture active : "+count+" événements utiles, "+scanned+" lignes examinées");}
      }
      out.flush();
-    }catch(Exception e){error+="logcat: "+e+"\n";}
+    }catch(Exception e){if(capturing)error+="logcat: "+e+"\n";}
    },"hfp-log-reader");logThread.start();
    state("running","Capture active, appeler le 666 depuis le Redmi.");
    save("avant.txt",Root.snapshot("avant"));
@@ -64,14 +82,14 @@ public final class CaptureService extends Service {
   if(logThread!=null)try{logThread.join(2500);}catch(Exception ignored){}
   try{save("apres.txt",Root.snapshot("apres"));}catch(Exception e){error+="apres: "+e+"\n";}
   try{
-   save("etat.txt","Événements collectés : "+count+"\nErreurs : "+(error.isEmpty()?"aucune":error)+"\n"+
+   save("etat.txt","Événements pertinents enregistrés : "+count+"\nLignes lues : "+scanned+"\nIgnorées par le filtre : "+skipped+"\nTroncature : "+truncated+"\nDernier évènement : "+new java.util.Date()+"\nErreurs : "+(error.isEmpty()?"aucune":error)+"\n"+
      "Root: "+(("0".equals(rootStatus())?"oui":"non"))+"\nUn compteur nul signifie que logcat n'a pas fourni de lignes.\n");
    try(ZipOutputStream zip=new ZipOutputStream(new FileOutputStream(file("HFP-Rapport.zip")))){
     for(String f:new String[]{"etat.txt","logcat.txt","avant.txt","pendant.txt","apres.txt","config.txt"}){
      File source=file(f);if(!source.exists())continue;
      zip.putNextEntry(new ZipEntry(f));
      try(BufferedReader reader=new BufferedReader(new FileReader(source))){
-      String line;int rows=0;while((line=reader.readLine())!=null&&rows++<30000){
+      String line;int rows=0;while((line=reader.readLine())!=null&&rows++<MAX_EVENTS){
        String safe=line.replaceAll("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}","[MAC]")
          .replaceAll("(?i)tel:[^ ,;]+","tel:[masqué]");
        zip.write((safe+"\n").getBytes(StandardCharsets.UTF_8));
@@ -79,7 +97,7 @@ public final class CaptureService extends Service {
      }zip.closeEntry();
     }
    }
-   state("ready","Rapport ZIP prêt : "+count+" lignes de logs. Partager ci-dessous.");
+   state("ready","Rapport ZIP prêt : "+count+" événements utiles"+(truncated?" (limite atteinte)":"")+". Partager ci-dessous.");
   }catch(Exception e){state("error","Rapport échoué : "+e.getMessage());}
   stopForeground(true);stopSelf();
  }
