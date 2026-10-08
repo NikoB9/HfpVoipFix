@@ -15,13 +15,20 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
     private static final String TAG = "HfpVoipFix";
     private static String sMode = "observe";
     private static boolean sScoActive = false;
+    private static final String MODE_PROP = "debug.hfpvoipfix.mode";
     private static String mode() {
         try {
-            android.app.Application a = de.robv.android.xposed.AndroidAppHelper.currentApplication();
-            if(a == null) return "observe";
-            String v=android.provider.Settings.Global.getString(a.getContentResolver(),"hfp_diag_audio_mode");
-            return "minimal".equals(v)||"endpoints".equals(v)||"patches".equals(v)?v:"observe";
-        } catch(Throwable t) {return "observe";}
+            Class<?> systemProperties = XposedHelpers.findClass("android.os.SystemProperties", null);
+            Object current = XposedHelpers.callStaticMethod(systemProperties, "get", MODE_PROP, "");
+            String raw = current instanceof String ? (String) current : "";
+            String effective = "minimal".equals(raw) || "endpoints".equals(raw) || "patches".equals(raw)
+                    ? raw : "observe";
+            Log.i(TAG, "Mode IPC property='" + raw + "' effective=" + effective);
+            return effective;
+        } catch (Throwable t) {
+            Log.e(TAG, "Mode IPC unavailable - forced observe", t);
+            return "observe";
+        }
     }
     private static final String BT_PACKAGE = "com.android.bluetooth";
     private static final String HFP_CONNECTION_SERVICE =

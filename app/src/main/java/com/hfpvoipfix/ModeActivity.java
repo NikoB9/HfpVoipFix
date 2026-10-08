@@ -2,10 +2,10 @@ package com.hfpvoipfix;
 import android.app.*;import android.os.*;import android.provider.Settings;import android.content.*;import android.widget.*;
 public class ModeActivity extends Activity {
  private TextView state; private String selected="observe";
- private static final String KEY="hfp_diag_audio_mode";
+ private static final String KEY="debug.hfpvoipfix.mode";
  private static final String[] MODES={"observe","minimal","endpoints","patches"};
  private static final String[] LABELS={"0 - Observation seule (aucune modification)","A - VoIP + bt_wbs, sans AudioPatch","B - VoIP + ports SCO, sans AudioPatch","C - Pont complet (risque de retour micro)"};
- private String read(){try{String m=Settings.Global.getString(getContentResolver(),KEY);for(String x:MODES)if(x.equals(m))return m;}catch(Exception ignored){}return "observe";}
+ private String read(){try{Class<?> c=Class.forName("android.os.SystemProperties");String m=(String)c.getDeclaredMethod("get",String.class,String.class).invoke(null,KEY,"observe");for(String x:MODES)if(x.equals(m))return m;}catch(Exception ignored){}return "observe";}
  @Override public void onCreate(Bundle b){super.onCreate(b);
   ScrollView sc=new ScrollView(this); LinearLayout l=new LinearLayout(this);l.setPadding(28,24,28,24);l.setOrientation(1);sc.addView(l);
   TextView title=new TextView(this);title.setText("HFP VoIP Fix - laboratoire");title.setTextSize(22);l.addView(title);
@@ -17,16 +17,16 @@ public class ModeActivity extends Activity {
    final String choice=selected;
    Runnable save=()->new Thread(()->{
      String result;try{
-       java.lang.Process p=new ProcessBuilder("su","-c","settings put global "+KEY+" "+choice+" && settings get global "+KEY).redirectErrorStream(true).start();
+       java.lang.Process p=new ProcessBuilder("su","-c","setprop "+KEY+" "+choice+" && getprop "+KEY).redirectErrorStream(true).start();
        java.io.BufferedReader br=new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
        String line=br.readLine();int exit=p.waitFor();
-       result=exit==0&&choice.equals(line)?"Mode enregistré : "+choice+" (prochain appel)":"Échec écriture root: "+line;
+       result=exit==0&&choice.equals(line)?"Mode confirmé par getprop : "+choice+" (prochain appel)":"ÉCHEC mode : getprop="+line+" code="+exit;
      }catch(Exception e){result="Erreur root: "+e.getMessage();}
      final String message=result;runOnUiThread(()->state.setText(message));
    }).start();
    if("patches".equals(choice))new AlertDialog.Builder(this).setTitle("Mode C expérimental").setMessage("Ce mode a déjà produit un retour micro déformé. Volume bas. Continuer?").setNegativeButton("Annuler",null).setPositiveButton("Activer",(d,w)->save.run()).show();else save.run();
   });l.addView(apply);
   TextView notes=new TextView(this);notes.setText("Utilise HFP Diagnostic 2.0 pour capturer les logs. Aucun changement de mode pendant les appels. Ne lis jamais /proc/asound/*/status pendant l'appel.");l.addView(notes);
-  setContentView(sc);state.setText("Mode actuel : "+read());
+  setContentView(sc);state.setText("Mode vu par Android : "+read()+" (vérifier getprop après sélection)");
  }
 }
