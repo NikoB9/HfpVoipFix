@@ -1,8 +1,7 @@
-name: Build standalone HFP Diagnostic
+name: Build standalone diagnostic APK
 on:
   push:
-    branches:
-      - v1.4-diagnostic
+    branches: [v1.4-diagnostic]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,5 +10,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Sanity
-        run: echo diagnostic-build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android 30 SDK
+        run: |
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-30' 'build-tools;35.0.0'
+      - name: Compile APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p out/classes out/dex
+          SDK="$ANDROID_SDK_ROOT/platforms/android-30/android.jar"
+          BT="$ANDROID_SDK_ROOT/build-tools/35.0.0"
+          javac -source 8 -target 8 -cp "$SDK" -d out/classes $(find diagnostic/src -name '*.java')
+          jar cf out/app.jar -C out/classes .
+          "$BT/d8" --release --min-api 26 --lib "$SDK" --output out/dex out/app.jar
+          "$BT/aapt2" compile --dir diagnostic/res -o out/res.zip
+          "$BT/aapt2" link -I "$SDK" --manifest diagnostic/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 28 -o out/unsigned.apk out/res.zip
+          (cd out/dex && zip -q -0 ../unsigned.apk classes.dex)
+          "$BT/zipalign" -f 4 out/unsigned.apk out/aligned.apk
+          keytool -genkeypair -noprompt -keystore out/key.jks -storepass android -keypass android -alias hfp -keyalg RSA -keysize 2048 -validity 3650 -dname 'CN=HFP Diagnostic Test'
+          "$BT/apksigner" sign --ks out/key.jks --ks-pass pass:android --key-pass pass:android --ks-key-alias hfp --out out/HFP-Diagnostic.apk out/aligned.apk
+          "$BT/apksigner" verify --verbose out/HFP-Diagnostic.apk
+          "$BT/aapt" dump badging out/HFP-Diagnostic.apk | head -15
+          sha256sum out/HFP-Diagnostic.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HFP-Diagnostic
+          path: out/HFP-Diagnostic.apk
+          if-no-files-found: error
