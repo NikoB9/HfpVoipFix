@@ -9,7 +9,6 @@ public final class MainActivity extends Activity {
  status=new TextView(this);status.setText("Ready. Captures Bluetooth HFP, Telecom, AudioFlinger, MediaTek and audio policy.");l.addView(status);
  Button start=new Button(this);start.setText("START CAPTURE before call");start.setOnClickListener(v->action("start"));l.addView(start);
  Button during=new Button(this);during.setText("SNAPSHOT DURING call");during.setOnClickListener(v->action("during"));l.addView(during);
- Button during=new Button(this);during.setText("2. SNAPSHOT during call");during.setOnClickListener(v->action("during"));l.addView(during);
  Button stop=new Button(this);stop.setText("STOP and build report");stop.setOnClickListener(v->action("stop"));l.addView(stop);
  Button share=new Button(this);share.setText("SHARE report ZIP");share.setOnClickListener(v->{File f=new File(getFilesDir(),"HFP-Diagnostic.zip");if(!f.isFile()){status.setText("No report yet");return;}Intent send=new Intent(Intent.ACTION_SEND);send.setType("application/zip");Intent export=new Intent(Intent.ACTION_CREATE_DOCUMENT);export.addCategory(Intent.CATEGORY_OPENABLE);export.setType("application/zip");export.putExtra(Intent.EXTRA_TITLE,"HFP-Diagnostic.zip");startActivityForResult(export,SAVE_REPORT);});l.addView(share);
  TextView note=new TextView(this);note.setText("Root Magisk required. No modifications to Bluetooth, LSPosed, audio HAL or pairing. Do not read /proc/asound/.../status during calls. Lower volume for noisy tests. Reports can include private information.");l.addView(note);
