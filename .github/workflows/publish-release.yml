@@ -1,10 +1,10 @@
-name: Publish v1.1.0
+name: Publish v1.1.1
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'dist/HfpVoipFix-1.1.0-mtk.apk'
+      - 'dist/HfpVoipFix-1.1.1-mtk.apk'
       - '.github/workflows/publish-release.yml'
   workflow_dispatch:
 
@@ -17,34 +17,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Replace old release with v1.1.0
+      - name: Replace v1.1.0 with v1.1.1
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
 
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            gh release delete v1.0.0 --cleanup-tag -y
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            gh release delete v1.1.0 --cleanup-tag -y
           fi
 
           cat > /tmp/release-notes.md <<'EOF'
           Experimental MediaTek HFP Client build.
 
-          Changes:
-          - adds versionName 1.1.0 / versionCode 11;
-          - adds an Android Bluetooth app icon;
-          - removes the old Telecom VoIP-mode hook;
-          - injects bt_wbs=on/off around HFP Client routeHfpAudio();
-          - keeps scope limited to com.android.bluetooth.
+          Changes in 1.1.1:
+          - custom phone + Bluetooth application icon;
+          - versionName 1.1.1 / versionCode 12;
+          - same bt_wbs HFP Client hook behavior as 1.1.0;
+          - same 1.1.x signing certificate, so 1.1.0 can be updated in place.
 
           SHA-256:
-          478cf0000fa258e266ac6e3e51942cb84365ca1ff46df57710b836629ff9b6db
-
-          Important: v1.0.0 used a different signing key. Uninstall v1.0.0 before installing the v1.1.x line.
+          a85e5a59c8971e993d90fb7fea36da0f4fef0ba80de3e51c1ff8575cde1fb1db
           EOF
 
-          if gh release view v1.1.0 >/dev/null 2>&1; then
-            gh release upload v1.1.0 dist/HfpVoipFix-1.1.0-mtk.apk --clobber
+          if gh release view v1.1.1 >/dev/null 2>&1; then
+            gh release upload v1.1.1 dist/HfpVoipFix-1.1.1-mtk.apk --clobber
           else
-            gh release create v1.1.0 dist/HfpVoipFix-1.1.0-mtk.apk               --title "HfpVoipFix 1.1.0 MTK"               --notes-file /tmp/release-notes.md               --latest
+            gh release create v1.1.1 dist/HfpVoipFix-1.1.1-mtk.apk               --title "HfpVoipFix 1.1.1 MTK"               --notes-file /tmp/release-notes.md               --latest
           fi

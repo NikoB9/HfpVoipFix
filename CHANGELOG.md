@@ -1,13 +1,17 @@
 # Changelog
 
+## 1.1.1
+
+- Added a custom blue **phone + Bluetooth** application icon.
+- Bumped Android package version to `versionName 1.1.1` / `versionCode 12`.
+- Kept the exact same `bt_wbs` HFP Client hook behavior as 1.1.0.
+- Kept the same 1.1.x signing certificate, allowing an in-place update from 1.1.0.
+
 ## 1.1.0
 
 - Replaced the previous Telecom/VoIP-mode experiment with a MediaTek-specific HFP Client bridge.
 - Sends `bt_wbs=on` before `routeHfpAudio(true)` and `bt_wbs=off` before `routeHfpAudio(false)`.
-- Added `versionName=1.1.0` and `versionCode=11`.
-- Added an Android Bluetooth application icon.
-- Updated the Xposed description to match the MediaTek experiment.
-- Replaced the old v1.0.0 distribution APK.
+- Removed the old `setAudioModeIsVoip(true)` experiment.
 
 ## 1.0.0
 
