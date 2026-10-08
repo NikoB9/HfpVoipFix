@@ -11,6 +11,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+// build-trigger v1.3.0
 public class HfpVoipFix implements IXposedHookLoadPackage {
     private static final String TAG = "HfpVoipFix";
     private static final String BT_PACKAGE = "com.android.bluetooth";
