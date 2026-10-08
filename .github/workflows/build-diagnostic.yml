@@ -27,7 +27,7 @@ jobs:
           javac -source 8 -target 8 -cp "$SDK" -d out/classes $(find diagnostic/src -name '*.java')
           jar cf out/app.jar -C out/classes .
           "$BT/d8" --release --min-api 26 --lib "$SDK" --output out/dex out/app.jar
-          "$BT/aapt2" compile --dir diagnostic/res -o out/res.zip
+          "$BT/aapt2" compile --dir app/src/main/res -o out/res.zip
           "$BT/aapt2" link -I "$SDK" --manifest diagnostic/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 28 -o out/unsigned.apk out/res.zip
           (cd out/dex && zip -q -0 ../unsigned.apk classes.dex)
           "$BT/zipalign" -f 4 out/unsigned.apk out/aligned.apk
