@@ -55,6 +55,7 @@ jobs:
           public abstract class XC_MethodHook {
               protected void beforeHookedMethod(MethodHookParam param) throws Throwable {}
               protected void afterHookedMethod(MethodHookParam param) throws Throwable {}
+              public static class Unhook {}
               public static class MethodHookParam {
                   public Object thisObject;
                   public Object[] args;
@@ -68,7 +69,7 @@ jobs:
           package de.robv.android.xposed;
           public final class XposedHelpers {
               public static Class<?> findClass(String name, ClassLoader loader) { return null; }
-              public static Object findAndHookMethod(Class<?> clazz, String methodName, Object... parameterTypesAndCallback) { return null; }
+              public static XC_MethodHook.Unhook findAndHookMethod(Class<?> clazz, String methodName, Object... parameterTypesAndCallback) { return null; }
               public static Object getObjectField(Object obj, String fieldName) { return null; }
               public static Object callMethod(Object obj, String methodName, Object... args) { return null; }
               public static Object callStaticMethod(Class<?> clazz, String methodName, Object... args) { return null; }
@@ -96,16 +97,16 @@ jobs:
 
           "$BT/aapt2" compile             --dir app/src/main/res             -o build-v13/resources.zip
 
-          "$BT/aapt2" link             -I "$PLATFORM"             --manifest app/src/main/AndroidManifest.xml             --min-sdk-version 23             --target-sdk-version 28             -o build-v13/HfpVoipFix-1.3.1-mtk-unsigned.apk             build-v13/resources.zip
+          "$BT/aapt2" link             -I "$PLATFORM"             --manifest app/src/main/AndroidManifest.xml             --min-sdk-version 23             --target-sdk-version 28             -o build-v13/HfpVoipFix-1.3.2-mtk-unsigned.apk             build-v13/resources.zip
 
-          (cd build-v13/dex && zip -q -0 ../HfpVoipFix-1.3.1-mtk-unsigned.apk classes.dex)
-          (cd app/src/main && zip -q -r "$GITHUB_WORKSPACE/build-v13/HfpVoipFix-1.3.1-mtk-unsigned.apk" assets)
+          (cd build-v13/dex && zip -q -0 ../HfpVoipFix-1.3.2-mtk-unsigned.apk classes.dex)
+          (cd app/src/main && zip -q -r "$GITHUB_WORKSPACE/build-v13/HfpVoipFix-1.3.2-mtk-unsigned.apk" assets)
 
-          unzip -l build-v13/HfpVoipFix-1.3.1-mtk-unsigned.apk
-          sha256sum build-v13/HfpVoipFix-1.3.1-mtk-unsigned.apk
+          unzip -l build-v13/HfpVoipFix-1.3.2-mtk-unsigned.apk
+          sha256sum build-v13/HfpVoipFix-1.3.2-mtk-unsigned.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: HfpVoipFix-1.3.1-mtk-unsigned
-          path: build-v13/HfpVoipFix-1.3.1-mtk-unsigned.apk
+          name: HfpVoipFix-1.3.2-mtk-unsigned
+          path: build-v13/HfpVoipFix-1.3.2-mtk-unsigned.apk
           if-no-files-found: error
