@@ -90,7 +90,9 @@ jobs:
 
           javac -source 8 -target 8             -cp "$PLATFORM:build-v13/xposed-stubs.jar"             -d build-v13/classes             app/src/main/java/com/hfpvoipfix/HfpVoipFix.java
 
-          "$BT/d8"             --release             --min-api 23             --lib "$PLATFORM"             --lib build-v13/xposed-stubs.jar             --output build-v13/dex             build-v13/classes
+          jar cf build-v13/hfpvoipfix-classes.jar -C build-v13/classes .
+
+          "$BT/d8"             --release             --min-api 23             --lib "$PLATFORM"             --lib build-v13/xposed-stubs.jar             --output build-v13/dex             build-v13/hfpvoipfix-classes.jar
 
           "$BT/aapt2" compile             --dir app/src/main/res             -o build-v13/resources.zip
 
