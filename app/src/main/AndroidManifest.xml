@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.hfpvoipfix">
+    package="com.hfpvoipfix"
+    android:versionCode="11"
+    android:versionName="1.1.0">
 
     <uses-sdk
-        android:minSdkVersion="30"
-        android:targetSdkVersion="30" />
+        android:minSdkVersion="23"
+        android:targetSdkVersion="28" />
 
     <application
         android:allowBackup="false"
+        android:icon="@android:drawable/stat_sys_data_bluetooth"
         android:label="HFP VoIP Fix">
 
         <meta-data
@@ -15,7 +18,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Force HFP Client calls into VoIP audio mode" />
+            android:value="MediaTek HFP Client bt_wbs bridge (experimental)" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />

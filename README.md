@@ -1,50 +1,86 @@
 # HfpVoipFix
 
-Experimental LSPosed compatibility module for Android HFP Client calls.
+Experimental LSPosed module for **Android HFP Client on MediaTek devices**.
 
-The module changes only one behavior inside `com.android.bluetooth`: when
-`com.android.bluetooth.hfpclient.connserv.HfpClientConnection` calls
-`Connection.setAudioModeIsVoip(false)`, the argument is changed to `true`.
+The current build, **v1.1.0**, targets a specific compatibility gap observed on an Android 11 / MT6785 Xiaomi device: Android's HFP Client opens SCO and sends the legacy HFP parameters, while the MediaTek audio HAL exposes a separate `bt_wbs` switch that configures the SCO codec path.
 
-The goal is to make Android Telecom treat an HFP Client call as a communication
-session rather than a local cellular call. This can help on phone-oriented
-vendor audio HALs that otherwise build a local modem `TELEPHONY_RX/TX` path
-instead of routing the remote HFP Client audio path.
+## Current build
 
-> **Experimental / device-specific.** This was created for an Android 11
-> MediaTek/Xiaomi HFP Client experiment. It is not a general-purpose call relay
-> solution and is not guaranteed to work on other ROMs or Android versions.
+**Version:** 1.1.0  
+**Version code:** 11  
+**APK:** `HfpVoipFix-1.1.0-mtk.apk`  
+**SHA-256:** `478cf0000fa258e266ac6e3e51942cb84365ca1ff46df57710b836629ff9b6db`
 
-## Download
+[Download the latest APK](https://github.com/NikoB9/HfpVoipFix/releases/latest/download/HfpVoipFix-1.1.0-mtk.apk)
 
-[Download the latest APK](https://github.com/NikoB9/HfpVoipFix/releases/latest/download/HfpVoipFix-1.0.apk)
+The package now exposes a real Android version number and uses Android's built-in Bluetooth icon, so it is identified more cleanly in package managers and LSPosed.
 
-Current release: **v1.0.0** (`HfpVoipFix-1.0.apk`).
+> **Experimental.** v1.1.0 has not yet been validated as a complete audio fix. It is a targeted diagnostic/compatibility build.
 
-## Prerequisites
+## What v1.1.0 does
 
-- Android 11 / API 30 for the current build.
-- Root access.
-- Magisk (or an equivalent root environment).
-- LSPosed installed and working.
-- Android Bluetooth package `com.android.bluetooth`.
-- HFP Client profile already available/enabled on the device. This module does
-  **not** enable HFP Client by itself.
-- A remote phone exposing the Bluetooth HFP Audio Gateway role.
+The module is scoped to `com.android.bluetooth` and hooks:
+
+`com.android.bluetooth.hfpclient.HeadsetClientStateMachine.routeHfpAudio(boolean)`
+
+Immediately before the stock HFP Client routing code runs, it sends:
+
+```text
+routeHfpAudio(true)  -> AudioSystem.setParameters("bt_wbs=on")
+routeHfpAudio(false) -> AudioSystem.setParameters("bt_wbs=off")
+```
+
+It does **not** force Telecom into VoIP mode. The previous `setAudioModeIsVoip(true)` experiment was removed because it changed Telecom to `MODE_IN_COMMUNICATION` but did not produce usable call audio on the MT6785 test device.
+
+## Why this exists
+
+On the test device, a normal HFP Client call already reaches:
+
+```text
+SCO/eSCO opened
+hfp_set_sampling_rate=16000
+hfp_enable=true
+hfp_volume=8
+```
+
+but no MediaTek `BT_SCO_RX/TX` start sequence was observed.
+
+Static inspection of `audio.primary.mt6785.so` showed that the HAL contains:
+
+```text
+bt_wbs
+SetBTCurrentSamplingRateNumber
+BT_SCO_SetMode
+BT_SCO_RX_Open / Start
+BT_SCO_TX_Open / Start
+AudioALSAPlaybackHandlerBTSCO
+AudioALSAPlaybackHandlerBTCVSD
+AudioALSACaptureDataProviderBTSCO
+AudioALSACaptureDataProviderBTCVSD
+VOIP_Call_BT_Playback
+VOIP_Call_BT_Capture
+```
+
+The purpose of v1.1.0 is therefore to test the missing AOSP-HFP-Client-to-MediaTek `bt_wbs` translation directly.
 
 ## Installation
 
-1. Install `HfpVoipFix-1.0.apk`.
-2. Open LSPosed and enable **HFP VoIP Fix**.
-3. In the module scope, enable **system applications** if LSPosed hides them.
-4. Select **only** `com.android.bluetooth` / Bluetooth.
-5. Do **not** scope the module to Google Messages, Dialer, Phone, System
-   Framework, or unrelated apps.
-6. Reboot the device.
+- Root + LSPosed are required.
+- HFP Client must already be enabled on the device.
+- Install the APK.
+- Enable **HFP VoIP Fix** in LSPosed.
+- Scope it **only** to Bluetooth / `com.android.bluetooth`.
+- Reboot.
+
+### Signature note
+
+The public v1.0.0 APK used an older signing key whose private key is no longer available in the current build environment. The v1.1.x line therefore uses a new signing key.
+
+If v1.0.0 is installed, uninstall it before installing v1.1.0. Builds from the v1.1.x line can update each other as long as this signing key is retained.
 
 ## Verification
 
-After reboot, verify that the module loaded:
+After reboot:
 
 ```sh
 su
@@ -56,76 +92,38 @@ sleep 4
 logcat -d | grep -i HfpVoipFix
 ```
 
-Expected output includes:
+Expected:
 
 ```text
-HfpVoipFix: Hook installed
+HfpVoipFix: MTK bt_wbs bridge hook installed
 ```
 
-During an HFP Client call, the hook should also log:
-
-```text
-HfpVoipFix: HFP Client: setAudioModeIsVoip(false) -> true
-```
-
-To inspect the resulting Telecom/audio mode without touching ALSA mixer state:
+During a short HFP Client call:
 
 ```sh
 logcat -b all -d -v time | grep -iE \
-'HfpVoipFix|setMode\(MODE_|hfp_enable|hfp_set_sampling_rate|hfp_volume|createAudioPatch'
+'HfpVoipFix|bt_wbs|SetBTCurrentSamplingRateNumber|BT_SCO_SetMode|BT_SCO_(RX|TX)_(Open|Start|Stop|Close)|AudioALSAPlaybackHandlerBT(SCO|CVSD)|AudioALSACaptureDataProviderBT(SCO|CVSD)|hfp_|bta_av_sco_chg_cback' \
+| tail -350
 ```
 
-A mode switch to `MODE_IN_COMMUNICATION` only proves that the hook is active.
-It does **not** prove that SCO audio is routed correctly. On the current MT6785
-test device, the hook successfully switches Telecom from `MODE_IN_CALL` to
-`MODE_IN_COMMUNICATION`, but usable call audio is still not obtained and a
-continuous high-pitched tone can be heard from the speaker. The remaining issue
-appears to be in vendor HFP/SCO audio routing rather than in the Telecom mode
-flag alone.
+The first success criterion is that `bt_wbs=on` reaches the MediaTek HAL and triggers `SetBTCurrentSamplingRateNumber(16000)` / `BT_SCO_SetMode(true)`. Whether that is sufficient to produce usable bidirectional audio remains to be tested.
 
-## Current test status
+## Scope and safety
 
-On the Android 11 / MT6785 test device:
+This module:
 
-- the LSPosed hook loads correctly inside `com.android.bluetooth`;
-- `setAudioModeIsVoip(false)` is changed to `true`;
-- Telecom consequently switches to `MODE_IN_COMMUNICATION`;
-- the MediaTek audio HAL still receives HFP parameters such as
-  `hfp_set_sampling_rate=16000`, `hfp_enable=true`, and `hfp_volume=8`;
-- call signalling works, but usable HFP call audio is **not fixed yet**;
-- a continuous high-pitched tone has been observed from the speaker.
+- does not enable HFP Client itself;
+- does not modify SMS or Google Messages;
+- does not pair Bluetooth devices;
+- does not implement an Android Auto bridge;
+- does not modify the MediaTek audio HAL binary.
 
-This repository therefore documents an **experimental diagnostic workaround**,
-not a completed HFP audio fix.
+On the MT6785 test kernel, reading active `/proc/asound/card*/pcm*/sub*/status` nodes caused a kernel panic inside `mtk_afe_pcm_pointer()`. Do not use those active ALSA status nodes as part of diagnostics on this device.
 
-## What this module does not do
+## Source
 
-- It does not enable the HFP Client profile.
-- It does not bridge SMS.
-- It does not modify Google Messages.
-- It does not create a Bluetooth pairing.
-- It does not guarantee that a vendor audio HAL can route SCO audio correctly.
-- It does not implement an Android Auto audio bridge.
-
-## Rollback
-
-Disable **HFP VoIP Fix** in LSPosed and reboot. No system files are modified by
-this module.
-
-## Safety note for MT6785 / MediaTek diagnostics
-
-On the test device, reading active ALSA PCM status nodes under
-`/proc/asound/card*/pcm*/sub*/status` triggered a kernel panic in
-`mtk_afe_pcm_pointer()`. Avoid using those status nodes while experimenting on
-similar vendor kernels unless you have independently verified they are safe.
-
-## Source layout
-
-- `app/src/main/java/com/hfpvoipfix/HfpVoipFix.java` — LSPosed hook.
-- `app/src/main/assets/xposed_init` — legacy Xposed entry point.
-- `app/src/main/AndroidManifest.xml` — Xposed module metadata.
-- `dist/HfpVoipFix-1.0.apk` — current prebuilt APK used by the release workflow.
+The Java source documents the exact hook logic used by the prebuilt APK. It references the hidden framework class `android.media.AudioSystem`; a conventional Gradle rebuild therefore requires platform/hidden-API stubs in addition to the public Android SDK.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT.

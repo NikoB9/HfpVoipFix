@@ -1,8 +1,11 @@
-name: Publish v1.0.0
+name: Publish v1.1.0
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'dist/HfpVoipFix-1.1.0-mtk.apk'
+      - '.github/workflows/publish-release.yml'
   workflow_dispatch:
 
 permissions:
@@ -14,15 +17,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create v1.0.0 release if missing
+      - name: Replace old release with v1.1.0
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
+
           if gh release view v1.0.0 >/dev/null 2>&1; then
-            echo "v1.0.0 already exists; nothing to do."
-            exit 0
+            gh release delete v1.0.0 --cleanup-tag -y
           fi
-          gh release create v1.0.0 dist/HfpVoipFix-1.0.apk \
-            --title "HfpVoipFix 1.0.0" \
-            --notes "Experimental diagnostic LSPosed module. It forces HFP Client connections to use VoIP audio mode; on the current MT6785 test device this changes Telecom mode but does not yet provide usable call audio." \
-            --latest
+
+          cat > /tmp/release-notes.md <<'EOF'
+          Experimental MediaTek HFP Client build.
+
+          Changes:
+          - adds versionName 1.1.0 / versionCode 11;
+          - adds an Android Bluetooth app icon;
+          - removes the old Telecom VoIP-mode hook;
+          - injects bt_wbs=on/off around HFP Client routeHfpAudio();
+          - keeps scope limited to com.android.bluetooth.
+
+          SHA-256:
+          478cf0000fa258e266ac6e3e51942cb84365ca1ff46df57710b836629ff9b6db
+
+          Important: v1.0.0 used a different signing key. Uninstall v1.0.0 before installing the v1.1.x line.
+          EOF
+
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            gh release upload v1.1.0 dist/HfpVoipFix-1.1.0-mtk.apk --clobber
+          else
+            gh release create v1.1.0 dist/HfpVoipFix-1.1.0-mtk.apk               --title "HfpVoipFix 1.1.0 MTK"               --notes-file /tmp/release-notes.md               --latest
+          fi

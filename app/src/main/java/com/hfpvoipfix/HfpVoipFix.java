@@ -1,58 +1,49 @@
 package com.hfpvoipfix;
 
-import android.telecom.Connection;
+import android.media.AudioSystem;
 import android.util.Log;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+/**
+ * Experimental MediaTek HFP Client bridge.
+ *
+ * Note: android.media.AudioSystem is a hidden platform API. A normal Gradle
+ * rebuild needs platform/hidden-API stubs in addition to the public SDK.
+ */
 public class HfpVoipFix implements IXposedHookLoadPackage {
     private static final String TAG = "HfpVoipFix";
-    private static final String TARGET_PACKAGE = "com.android.bluetooth";
-    private static final String HFP_CONNECTION =
-            "com.android.bluetooth.hfpclient.connserv.HfpClientConnection";
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
+        if (!"com.android.bluetooth".equals(lpparam.packageName)) {
             return;
         }
 
-        try {
-            final Class<?> hfpConnectionClass = XposedHelpers.findClass(
-                    HFP_CONNECTION,
-                    lpparam.classLoader
-            );
+        Class<?> stateMachine = XposedHelpers.findClass(
+                "com.android.bluetooth.hfpclient.HeadsetClientStateMachine",
+                lpparam.classLoader);
 
-            XposedHelpers.findAndHookMethod(
-                    Connection.class,
-                    "setAudioModeIsVoip",
-                    boolean.class,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            if (!hfpConnectionClass.isInstance(param.thisObject)) {
-                                return;
-                            }
+        XposedHelpers.findAndHookMethod(
+                stateMachine,
+                "routeHfpAudio",
+                boolean.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        boolean enable = (Boolean) param.args[0];
 
-                            boolean requested = (Boolean) param.args[0];
-                            if (!requested) {
-                                param.args[0] = true;
-                                Log.i(TAG,
-                                        "HFP Client: setAudioModeIsVoip(false) -> true");
-                                XposedBridge.log(TAG + ": forced VoIP audio mode");
-                            }
-                        }
+                        AudioSystem.setParameters(enable ? "bt_wbs=on" : "bt_wbs=off");
+
+                        Log.i(TAG, enable
+                                ? "routeHfpAudio(true): bt_wbs=on"
+                                : "routeHfpAudio(false): bt_wbs=off");
                     }
-            );
+                });
 
-            Log.i(TAG, "Hook installed");
-        } catch (Throwable t) {
-            Log.e(TAG, "Hook installation failed", t);
-            XposedBridge.log(t);
-        }
+        Log.i(TAG, "MTK bt_wbs bridge hook installed");
     }
 }
