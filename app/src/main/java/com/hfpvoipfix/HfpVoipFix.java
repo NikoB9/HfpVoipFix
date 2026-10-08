@@ -11,11 +11,9 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-// build-trigger v1.3.0
 public class HfpVoipFix implements IXposedHookLoadPackage {
     private static final String TAG = "HfpVoipFix";
     private static final String BT_PACKAGE = "com.android.bluetooth";
-    private static final String TELECOM_PACKAGE = "com.android.server.telecom";
     private static final String HFP_CONNECTION_SERVICE =
             "com.android.bluetooth.hfpclient.connserv.HfpClientConnectionService";
 
@@ -33,8 +31,6 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
         try {
             if (BT_PACKAGE.equals(lpparam.packageName)) {
                 installBluetoothHooks(lpparam);
-            } else if (TELECOM_PACKAGE.equals(lpparam.packageName)) {
-                installTelecomHooks(lpparam);
             }
         } catch (Throwable t) {
             Log.e(TAG, "Failed to install hooks in " + lpparam.packageName, t);
@@ -46,15 +42,19 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
                 "com.android.bluetooth.hfpclient.HeadsetClientStateMachine",
                 lpparam.classLoader);
         XposedHelpers.findAndHookMethod(sm, "routeHfpAudio", boolean.class, new RouteHook());
-        Log.i(TAG, "MTK v1.3 Bluetooth hooks installed");
-    }
 
-    private static void installTelecomHooks(XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> call = XposedHelpers.findClass(
-                "com.android.server.telecom.Call",
-                lpparam.classLoader);
-        XposedHelpers.findAndHookMethod(call, "getIsVoipAudioMode", new TelecomVoipHook());
-        Log.i(TAG, "MTK v1.3 Telecom early-VoIP hook installed");
+        Class<?> service = XposedHelpers.findClass(HFP_CONNECTION_SERVICE, lpparam.classLoader);
+        Class<?> phoneAccountHandle = XposedHelpers.findClass("android.telecom.PhoneAccountHandle", null);
+        Class<?> connectionRequest = XposedHelpers.findClass("android.telecom.ConnectionRequest", null);
+        XC_MethodHook earlyVoip = new EarlyConnectionVoipHook();
+        XposedHelpers.findAndHookMethod(service, "onCreateIncomingConnection",
+                phoneAccountHandle, connectionRequest, earlyVoip);
+        XposedHelpers.findAndHookMethod(service, "onCreateOutgoingConnection",
+                phoneAccountHandle, connectionRequest, earlyVoip);
+        XposedHelpers.findAndHookMethod(service, "onCreateUnknownConnection",
+                phoneAccountHandle, connectionRequest, earlyVoip);
+
+        Log.i(TAG, "MTK v1.3.1 Bluetooth hooks installed (early Connection VoIP + SCO bridge)");
     }
 
     private static Class<?> audioSystemClass() {
@@ -195,43 +195,18 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
         }
     }
 
-    private static boolean matchesHfpComponent(Object componentName) {
-        if (componentName == null) return false;
-        try {
-            Object pkg = XposedHelpers.callMethod(componentName, "getPackageName");
-            Object cls = XposedHelpers.callMethod(componentName, "getClassName");
-            return BT_PACKAGE.equals(pkg)
-                    && cls instanceof String
-                    && (HFP_CONNECTION_SERVICE.equals(cls)
-                        || ((String) cls).endsWith(".HfpClientConnectionService"));
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private static boolean isHfpClientTelecomCall(Object call) {
-        // Prefer PhoneAccountHandle because it is normally known before the
-        // connection has fully transitioned to ACTIVE.
-        try {
-            Object account = XposedHelpers.callMethod(call, "getTargetPhoneAccount");
-            if (account != null) {
-                Object component = XposedHelpers.callMethod(account, "getComponentName");
-                if (matchesHfpComponent(component)) return true;
+    public static final class EarlyConnectionVoipHook extends XC_MethodHook {
+        @Override
+        protected void afterHookedMethod(MethodHookParam param) {
+            Object connection = param.getResult();
+            if (connection == null) return;
+            try {
+                XposedHelpers.callMethod(connection, "setAudioModeIsVoip", true);
+                Log.i(TAG, "Early HFP Connection VoIP=true before returning to Telecom");
+            } catch (Throwable t) {
+                Log.e(TAG, "Failed to set early HFP Connection VoIP mode", t);
             }
-        } catch (Throwable ignored) {
         }
-
-        // Fallback once ConnectionServiceWrapper has been attached.
-        try {
-            Object service = XposedHelpers.callMethod(call, "getConnectionService");
-            if (service != null) {
-                Object component = XposedHelpers.callMethod(service, "getComponentName");
-                if (matchesHfpComponent(component)) return true;
-            }
-        } catch (Throwable ignored) {
-        }
-
-        return false;
     }
 
     public static final class RouteHook extends XC_MethodHook {
@@ -261,18 +236,5 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
         }
     }
 
-    public static final class TelecomVoipHook extends XC_MethodHook {
-        @Override
-        protected void afterHookedMethod(MethodHookParam param) {
-            if (!isHfpClientTelecomCall(param.thisObject)) return;
 
-            boolean wasTrue = Boolean.TRUE.equals(param.getResult());
-            param.setResult(Boolean.TRUE);
-
-            if (!wasTrue || !sTelecomForcedLogged) {
-                Log.i(TAG, "Telecom early VoIP=true for HFP Client call");
-                sTelecomForcedLogged = true;
-            }
-        }
-    }
 }
