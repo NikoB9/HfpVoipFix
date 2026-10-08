@@ -13,6 +13,16 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class HfpVoipFix implements IXposedHookLoadPackage {
     private static final String TAG = "HfpVoipFix";
+    private static String sMode = "observe";
+    private static boolean sScoActive = false;
+    private static String mode() {
+        try {
+            android.app.Application a = de.robv.android.xposed.AndroidAppHelper.currentApplication();
+            if(a == null) return "observe";
+            String v=android.provider.Settings.Global.getString(a.getContentResolver(),"hfp_diag_audio_mode");
+            return "minimal".equals(v)||"endpoints".equals(v)||"patches".equals(v)?v:"observe";
+        } catch(Throwable t) {return "observe";}
+    }
     private static final String BT_PACKAGE = "com.android.bluetooth";
     private static final String HFP_CONNECTION_SERVICE =
             "com.android.bluetooth.hfpclient.connserv.HfpClientConnectionService";
@@ -201,6 +211,9 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
             Object connection = param.getResult();
             if (connection == null) return;
             try {
+                String selected = mode();
+                Log.i(TAG,"Connection selected mode="+selected);
+                if("observe".equals(selected)) return;
                 XposedHelpers.callMethod(connection, "setAudioModeIsVoip", true);
                 Log.i(TAG, "Early HFP Connection VoIP=true before returning to Telecom");
             } catch (Throwable t) {
@@ -210,31 +223,37 @@ public class HfpVoipFix implements IXposedHookLoadPackage {
     }
 
     public static final class RouteHook extends XC_MethodHook {
-        @Override
-        protected void beforeHookedMethod(MethodHookParam param) {
-            boolean enable = (Boolean) param.args[0];
-            if (enable) {
-                setParameters("bt_wbs=on");
-                setScoState(param.thisObject, true);
-                Log.i(TAG, "routeHfpAudio(true): bt_wbs=on + SCO endpoints");
-            } else {
-                releasePatches();
-                Log.i(TAG, "routeHfpAudio(false): patches released");
-            }
+        @Override protected void beforeHookedMethod(MethodHookParam param) {
+            boolean enable = Boolean.TRUE.equals(param.args[0]);
+            try {
+                if(enable) {
+                    if(sScoActive) return;
+                    sMode=mode();
+                    sScoActive=true;
+                    Log.i(TAG,"SCO begin selected mode="+sMode);
+                    if("observe".equals(sMode)) return;
+                    setParameters("bt_wbs=on");
+                    if(!"minimal".equals(sMode)) setScoState(param.thisObject,true);
+                } else if(sScoActive && "patches".equals(sMode)) {
+                    releasePatches();
+                }
+            } catch(Throwable t){Log.e(TAG,"route before failed",t);}
         }
-
-        @Override
-        protected void afterHookedMethod(MethodHookParam param) {
-            boolean enable = (Boolean) param.args[0];
-            if (enable) {
-                createPatches();
-            } else {
-                setScoState(param.thisObject, false);
-                setParameters("bt_wbs=off");
-                Log.i(TAG, "routeHfpAudio(false): SCO endpoints removed + bt_wbs=off");
-            }
+        @Override protected void afterHookedMethod(MethodHookParam param) {
+            boolean enable=Boolean.TRUE.equals(param.args[0]);
+            try {
+                if(enable) {
+                    if(sScoActive && "patches".equals(sMode)) createPatches();
+                } else if(sScoActive) {
+                    if(!"observe".equals(sMode)) {
+                        if(!"minimal".equals(sMode)) setScoState(param.thisObject,false);
+                        setParameters("bt_wbs=off");
+                    }
+                    Log.i(TAG,"SCO end selected mode="+sMode);
+                    sMode="observe";
+                    sScoActive=false;
+                }
+            } catch(Throwable t){Log.e(TAG,"route after failed",t);}
         }
     }
-
-
 }

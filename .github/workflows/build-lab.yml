@@ -1,0 +1,123 @@
+name: Build HFP VoIP Lab 1.4
+
+on:
+  push:
+    branches: [ v1.4-diagnostic ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/build-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK pieces
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"             "platforms;android-30"             "build-tools;30.0.3"
+
+      - name: Build unsigned APK without Gradle
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          PLATFORM="$ANDROID_SDK_ROOT/platforms/android-30/android.jar"
+          BT="$ANDROID_SDK_ROOT/build-tools/30.0.3"
+
+          rm -rf build-v13
+          mkdir -p build-v13/stubsrc/de/robv/android/xposed/callbacks
+          mkdir -p build-v13/stubsrc/de/robv/android/xposed
+          mkdir -p build-v13/stubclasses build-v13/classes build-v13/dex
+
+          cat > build-v13/stubsrc/de/robv/android/xposed/IXposedHookLoadPackage.java <<'EOF'
+          package de.robv.android.xposed;
+          import de.robv.android.xposed.callbacks.XC_LoadPackage;
+          public interface IXposedHookLoadPackage {
+              void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable;
+          }
+          EOF
+
+          cat > build-v13/stubsrc/de/robv/android/xposed/XC_MethodHook.java <<'EOF'
+          package de.robv.android.xposed;
+          public abstract class XC_MethodHook {
+              protected void beforeHookedMethod(MethodHookParam param) throws Throwable {}
+              protected void afterHookedMethod(MethodHookParam param) throws Throwable {}
+              public static class Unhook {}
+              public static class MethodHookParam {
+                  public Object thisObject;
+                  public Object[] args;
+                  public Object getResult() { return null; }
+                  public void setResult(Object result) {}
+              }
+          }
+          EOF
+
+          cat > build-v13/stubsrc/de/robv/android/xposed/XposedHelpers.java <<'EOF'
+          package de.robv.android.xposed;
+          public final class XposedHelpers {
+              public static Class<?> findClass(String name, ClassLoader loader) { return null; }
+              public static XC_MethodHook.Unhook findAndHookMethod(Class<?> clazz, String methodName, Object... parameterTypesAndCallback) { return null; }
+              public static Object getObjectField(Object obj, String fieldName) { return null; }
+              public static Object callMethod(Object obj, String methodName, Object... args) { return null; }
+              public static Object callStaticMethod(Class<?> clazz, String methodName, Object... args) { return null; }
+          }
+          EOF
+
+          cat > build-v13/stubsrc/de/robv/android/xposed/callbacks/XC_LoadPackage.java <<'EOF'
+          package de.robv.android.xposed.callbacks;
+          public abstract class XC_LoadPackage {
+              public static class LoadPackageParam {
+                  public String packageName;
+                  public ClassLoader classLoader;
+              }
+          }
+          EOF
+
+          cat > build-v13/stubsrc/de/robv/android/xposed/AndroidAppHelper.java <<'EOF'
+          package de.robv.android.xposed;
+          import android.app.Application;
+          public final class AndroidAppHelper {
+              public static Application currentApplication() { return null; }
+          }
+          EOF
+          javac -source 8 -target 8             -d build-v13/stubclasses             $(find build-v13/stubsrc -name '*.java')
+          jar cf build-v13/xposed-stubs.jar -C build-v13/stubclasses .
+
+          javac -source 8 -target 8             -cp "$PLATFORM:build-v13/xposed-stubs.jar"             -d build-v13/classes             $(find app/src/main/java -name '*.java')
+
+          jar cf build-v13/hfpvoipfix-classes.jar -C build-v13/classes .
+
+          "$BT/d8"             --release             --min-api 23             --lib "$PLATFORM"             --lib build-v13/xposed-stubs.jar             --output build-v13/dex             build-v13/hfpvoipfix-classes.jar
+
+          "$BT/aapt2" compile             --dir app/src/main/res             -o build-v13/resources.zip
+
+          "$BT/aapt2" link             -I "$PLATFORM"             --manifest app/src/main/AndroidManifest.xml             --min-sdk-version 23             --target-sdk-version 28             -o build-v13/HfpVoipLab-1.4-unsigned.apk             build-v13/resources.zip
+
+          (cd build-v13/dex && zip -q -0 ../HfpVoipLab-1.4-unsigned.apk classes.dex)
+          (cd app/src/main && zip -q -r "$GITHUB_WORKSPACE/build-v13/HfpVoipLab-1.4-unsigned.apk" assets)
+
+          unzip -l build-v13/HfpVoipLab-1.4-unsigned.apk
+          "$BT/zipalign" -f 4 build-v13/HfpVoipLab-1.4-unsigned.apk build-v13/aligned.apk
+          keytool -genkeypair -noprompt -keystore build-v13/key.jks -storepass android -keypass android -alias hfp -keyalg RSA -keysize 2048 -validity 3650 -dname 'CN=HFP VoIP Lab Test'
+          "$BT/apksigner" sign --ks build-v13/key.jks --ks-pass pass:android --key-pass pass:android --ks-key-alias hfp --out build-v13/HfpVoipLab-1.4.apk build-v13/aligned.apk
+          "$BT/apksigner" verify --verbose build-v13/HfpVoipLab-1.4.apk
+          sha256sum build-v13/HfpVoipLab-1.4.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HfpVoipLab-1.4
+          path: build-v13/HfpVoipLab-1.4.apk
+          if-no-files-found: error
