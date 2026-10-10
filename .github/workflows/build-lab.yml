@@ -1,7 +1,7 @@
 name: Build HfpVoipLab
 on:
   push:
-    branches: [v1.4-diagnostic]
+    branches: [main]
     paths: ['app/**', 'tools/**', 'tests/**', '.github/workflows/build-lab.yml']
   workflow_dispatch:
 permissions:
@@ -31,7 +31,7 @@ jobs:
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/HciMetadata.java tests/HciMetadataTest.java
           java -cp build-tests com.hfpvoipfix.HciMetadataTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/RxGate.java tests/RxGateTest.java
-          java -cp build-tests com.hfpvoipfix.RxGateTest
+          java -cp build-tests com.hfpvoipfix/RxGateTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/ProbeChannel.java tests/ProbeChannelTest.java
           java -cp build-tests com.hfpvoipfix.ProbeChannelTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/CallCommand.java tests/CallCommandTest.java
@@ -53,15 +53,15 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.1.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.7.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.7.1-signed
+          name: HfpVoipLab-1.7.7-signed
           path: |
-            build-lab/HfpVoipLab-1.7.1.apk
+            build-lab/HfpVoipLab-1.7.7.apk
             build-lab/signature.txt
             build-lab/manifest.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.1.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.7.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'
