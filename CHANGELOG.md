@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.8-lab
+
+- D3 now lets Android select its default built-in microphone instead of rejecting phones that expose multiple microphones of the same type.
+- Logs candidate and selected microphone IDs, addresses, and product names for route diagnosis; it still verifies the actual route before sending audio and never saves PCM.
+- Bumped package version to `versionCode 43` for in-place updates.
+
 ## 1.1.1
 
 - Added a custom blue **phone + Bluetooth** application icon.

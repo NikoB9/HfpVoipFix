@@ -53,15 +53,15 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.7.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.8.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.7.7-signed
+          name: HfpVoipLab-1.7.8-signed
           path: |
-            build-lab/HfpVoipLab-1.7.7.apk
+            build-lab/HfpVoipLab-1.7.8.apk
             build-lab/signature.txt
             build-lab/manifest.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.7.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.8.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'

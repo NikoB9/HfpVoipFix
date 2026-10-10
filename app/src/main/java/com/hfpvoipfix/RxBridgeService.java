@@ -45,7 +45,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.7".equals(values.get("version")))throw new IOException("Module 1.7.7 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.8".equals(values.get("version")))throw new IOException("Module 1.7.8 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -61,7 +61,11 @@ public final class RxBridgeService extends Service {
         AudioDeviceInfo result=null;for(AudioDeviceInfo d:am.getDevices(flags))if(d.getType()==type){if(result!=null)throw new IOException("Plusieurs périphériques audio candidats : essai refusé.");result=d;}
         if(result==null)throw new IOException("Périphérique absent : type="+type);return result;
     }
-    private boolean routed(AudioRecord record,AudioTrack track,int input,int output,int inputType,int outputType){AudioDeviceInfo a=record.getRoutedDevice(),b=track.getRoutedDevice();return a!=null&&b!=null&&a.getId()==input&&a.getType()==inputType&&b.getId()==output&&b.getType()==outputType;}
+    private void logMicCandidates(AudioManager am){
+        for(AudioDeviceInfo d:am.getDevices(AudioManager.GET_DEVICES_INPUTS))if(d.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC)
+            event("MIC_CANDIDATE id="+d.getId()+" address="+Privacy.clean(d.getAddress())+" name="+Privacy.clean(String.valueOf(d.getProductName())));
+    }
+    private boolean routed(AudioRecord record,AudioTrack track,int input,int output,int inputType,int outputType){AudioDeviceInfo a=record.getRoutedDevice(),b=track.getRoutedDevice();return a!=null&&b!=null&&(input<0||a.getId()==input)&&a.getType()==inputType&&b.getId()==output&&b.getType()==outputType;}
     private void runBridge(){AudioRecord record=null;AudioTrack track=null;
         try{
             if(!CaptureService.alive||!getSharedPreferences("capture",0).getString("phase","").equals("running"))throw new IOException("Démarrer la capture avant d'armer le pont.");
@@ -76,7 +80,12 @@ public final class RxBridgeService extends Service {
             if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Appel téléphonique local actif : essai refusé.");
             int inputType=tx?AudioDeviceInfo.TYPE_BUILTIN_MIC:AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
             int outputType=tx?AudioDeviceInfo.TYPE_BLUETOOTH_SCO:AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
-            AudioDeviceInfo input=unique(am,AudioManager.GET_DEVICES_INPUTS,inputType),output=unique(am,AudioManager.GET_DEVICES_OUTPUTS,outputType);
+            // For TX, let Android's MIC source choose the policy's default microphone.
+            // Some MIUI builds expose the front and rear mics as multiple devices of the
+            // same public type; choosing one arbitrarily can reject a valid route.
+            AudioDeviceInfo input=null;
+            if(tx)logMicCandidates(am);else input=unique(am,AudioManager.GET_DEVICES_INPUTS,inputType);
+            AudioDeviceInfo output=unique(am,AudioManager.GET_DEVICES_OUTPUTS,outputType);
             int inMin=AudioRecord.getMinBufferSize(rate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT),outMin=AudioTrack.getMinBufferSize(rate,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
             if(inMin<=0||outMin<=0)throw new IOException("Format audio non pris en charge à "+rate+" Hz");
             record=new AudioRecord.Builder().setAudioSource(tx?MediaRecorder.AudioSource.MIC:MediaRecorder.AudioSource.VOICE_RECOGNITION)
@@ -85,17 +94,17 @@ public final class RxBridgeService extends Service {
                 .setAudioFormat(new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
                 .setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             if(record.getState()!=AudioRecord.STATE_INITIALIZED||track.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation AudioRecord/AudioTrack refusée.");
-            if(!record.setPreferredDevice(input)||!track.setPreferredDevice(output))throw new IOException("Périphérique préféré refusé.");
+            if((input!=null&&!record.setPreferredDevice(input))||!track.setPreferredDevice(output))throw new IOException("Périphérique préféré refusé.");
             track.setVolume(tx?0.8f:0.35f);record.startRecording();track.play();
             short[] samples=new short[rate/50],silence=new short[rate/50];
-            long opened=SystemClock.elapsedRealtime(),last=opened,lastData=opened,read=0,written=0,dropped=0,nonzero=0,energy=0,window=0;int peak=0;boolean confirmed=false;
-            event("OPEN direction="+(tx?"tx":"rx")+" rate="+rate+" input_id="+input.getId()+" output_id="+output.getId()+" gain="+(tx?"0.8":"0.35")+" no_audio_saved");
+            long opened=SystemClock.elapsedRealtime(),last=opened,lastData=opened,read=0,written=0,dropped=0,nonzero=0,energy=0,window=0;int peak=0,inputId=input==null?-1:input.getId();boolean confirmed=false;
+            event("OPEN direction="+(tx?"tx":"rx")+" rate="+rate+" input_id="+(inputId<0?"system_default":inputId)+" output_id="+output.getId()+" gain="+(tx?"0.8":"0.35")+" no_audio_saved");
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de réception.");
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
-                boolean route=routed(record,track,input.getId(),output.getId(),inputType,outputType);
+                boolean route=routed(record,track,inputId,output.getId(),inputType,outputType);
                 if(confirmed&&!route)throw new IOException("Route changée : arrêt sans restitution des données.");
-                if(!confirmed){if(!tx)track.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);if(route){confirmed=true;event(tx?"ROUTE_CONFIRMED input=MIC output=SCO":"ROUTE_CONFIRMED input=SCO output=SPEAKER");}else if(now-opened>2500)throw new IOException(tx?"Route microphone → SCO non confirmée.":"Route SCO → haut-parleur non confirmée.");}
+                if(!confirmed){if(!tx)track.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);if(route){confirmed=true;if(inputId<0){AudioDeviceInfo routedInput=record.getRoutedDevice();inputId=routedInput.getId();event("MIC_SELECTED id="+inputId+" address="+Privacy.clean(routedInput.getAddress())+" name="+Privacy.clean(String.valueOf(routedInput.getProductName())));}event(tx?"ROUTE_CONFIRMED input=MIC output=SCO":"ROUTE_CONFIRMED input=SCO output=SPEAKER");}else if(now-opened>2500)throw new IOException(tx?"Route microphone → SCO non confirmée.":"Route SCO → haut-parleur non confirmée.");}
                 int n=record.read(samples,0,samples.length,AudioRecord.READ_NON_BLOCKING);if(n<0)throw new IOException("AudioRecord.read="+n);
                 if(n>0){lastData=now;read+=n;
                     if(!confirmed||!allowed()||!routed(record,track,input.getId(),output.getId(),inputType,outputType)){dropped+=n;Arrays.fill(samples,(short)0);continue;}

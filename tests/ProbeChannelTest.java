@@ -14,8 +14,8 @@ public final class ProbeChannelTest {
             while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
                 else if(s.startsWith("setprop")){String token=s.split(" ")[2];w.println((fail?"FAIL":"OK")+token);
                     for(int i=0;i<1500;i++)event.println("Noise logcat message "+i);
-                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.7.7 token=old busy=false");
-                    if(!fail)event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.7.7 token="+token+" busy=false");
+                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.7.8 token=old busy=false");
+                    if(!fail)event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.7.8 token="+token+" busy=false");
                 }
             }
         }catch(IOException ignored){}}).start();return new Pipe[]{shell,log};
@@ -25,8 +25,8 @@ public final class ProbeChannelTest {
         try(ProbeChannel c=new ProbeChannel(p[0],p[1])){for(int i=0;i<100;i++){String line=c.read();if(line.contains("token=old")||line.equals(previous))throw new AssertionError("stale heartbeat");previous=line;}}
         if(!p[0].destroyed||!p[1].destroyed)throw new AssertionError("cleanup");
         Pipe[] denied=start(true);try(ProbeChannel c=new ProbeChannel(denied[0],denied[1])){try{c.read();throw new AssertionError("setprop failure accepted");}catch(IOException expected){if(!expected.getMessage().contains("setprop"))throw expected;}}
-        if(ProbeChannel.matching("LAB epoch=42 STATUS version=1.7.7 token=abc123 busy=false","abc")!=null)throw new AssertionError("prefix match");
-        if(ProbeChannel.matching("LAB SOFT_BRIDGE HANDSHAKE STATUS version=1.7.7 token=abc busy=false","abc")!=null)throw new AssertionError("app replay matched");
+        if(ProbeChannel.matching("LAB epoch=42 STATUS version=1.7.8 token=abc123 busy=false","abc")!=null)throw new AssertionError("prefix match");
+        if(ProbeChannel.matching("LAB SOFT_BRIDGE HANDSHAKE STATUS version=1.7.8 token=abc busy=false","abc")!=null)throw new AssertionError("app replay matched");
         System.out.println("PASS live status: 100 fresh handshakes amid 150000 unrelated lines, refusal and dual-process cleanup");
     }
 }

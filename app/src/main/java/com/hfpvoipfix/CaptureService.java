@@ -77,7 +77,7 @@ public final class CaptureService extends Service {
             try{String probe=LabProbe.read(this);SessionStore.note(this,probe);
                 Matcher m=Pattern.compile("epoch=(\\d+)").matcher(probe);if(m.find())callEpoch=m.group(1);
             }catch(Exception e){fail(e.getMessage());}
-            StringBuilder sys=new StringBuilder("HfpVoipLab 1.7.7\n");
+            StringBuilder sys=new StringBuilder("HfpVoipLab 1.7.8\n");
             for(String cmd:new String[]{"getprop ro.build.fingerprint","getprop ro.build.version.release","getprop ro.product.device","getprop ro.board.platform","magisk -V","pidof com.android.bluetooth"}){
                 try{sys.append(cmd).append('\n').append(Privacy.clean(Root.command(cmd,4000,5))).append('\n');}catch(Exception e){sys.append("Indisponible : ").append(cmd).append('\n');}
             }
@@ -135,7 +135,7 @@ public final class CaptureService extends Service {
         snapshot("fin");
         try{
             SessionStore.finish(this);
-            save("summary.txt","HfpVoipLab 1.7.7\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
+            save("summary.txt","HfpVoipLab 1.7.8\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
                 "\nÉvénements retirés du milieu par rotation : "+dropped+"\nConservation : début (6 Mio) + cinq derniers segments (30 Mio).\n"+
                 "Les horodatages CALL et SCO servent au recoupement ; status=0 ne prouve pas un transport PCM.\n"+
                 "WBS reflète la négociation rapportée par Android, pas une mesure du codec sur le fil.\n"+
