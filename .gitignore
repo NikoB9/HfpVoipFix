@@ -4,3 +4,12 @@ local.properties
 /build/
 **/build/
 *.iml
+/build-lab/
+/build-tests/
+*.jks
+*.p12
+*.keystore
+signing-private/
+
+/tests/tmp*/
+*.class

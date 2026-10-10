@@ -1,0 +1,39 @@
+HfpVoipLab 1.5.0 — vérification de livraison
+
+APK SHA-256: omitted from public validation note
+
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): false
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate identity and fingerprints: omitted from public validation note
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key fingerprints: omitted from public validation note
+
+package: name='com.hfpvoipfix' versionCode='30' versionName='1.5.0-lab' platformBuildVersionName='11' platformBuildVersionCode='30' compileSdkVersion='30' compileSdkVersionCodename='11'
+minSdkVersion:'30'
+targetSdkVersion:'30'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+application-label:'HFP VoIP Lab'
+application-icon-160:'res/drawable/ic_launcher.xml'
+application: label='HFP VoIP Lab' icon='res/drawable/ic_launcher.xml'
+launchable-activity: name='com.hfpvoipfix.ModeActivity'  label='' icon=''
+feature-group: label=''
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+main
+other-services
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--'
+densities: '160'
+
+DEX : 49 classes, toutes dans com.hfpvoipfix ; API Xposed non embarquée.
+Asset LSPosed exact, archive ZIP intacte, alignement vérifié.
+Tests hôtes : 25 assertions hooks + hooks de cycle absents + export ZIP.
+Aucun test UI/émulateur ni SCO physique sur l'appareil cible.

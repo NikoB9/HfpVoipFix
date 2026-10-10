@@ -17,4 +17,4 @@
 
 - Initial diagnostic build.
 - Forced HFP Client connections to `setAudioModeIsVoip(true)`.
-- Confirmed Telecom switched to `MODE_IN_COMMUNICATION`, but usable HFP audio was not obtained on the MT6785 test device.
+- Confirmed Telecom switched to `MODE_IN_COMMUNICATION`, but usable HFP audio was not obtained on the test device.

@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hfpvoipfix"
-    android:versionCode="20"
-    android:versionName="1.4.1-lab">
+    android:versionCode="42"
+    android:versionName="1.7.7-lab">
 
     <uses-sdk
-        android:minSdkVersion="23"
-        android:targetSdkVersion="28" />
+        android:minSdkVersion="30"
+        android:targetSdkVersion="30" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <application
         android:allowBackup="false"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:icon="@drawable/ic_launcher"
         android:label="HFP VoIP Lab">
 
@@ -19,11 +23,15 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="MediaTek HFP Client early Connection-VoIP + SCO AudioPatch bridge (experimental)" />
+            android:value="Laboratoire HFP Android 11 : modes dynamiques et diagnostic intégré" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />
 
+        <service android:name=".CaptureService" android:exported="false" android:stopWithTask="false" />
+        <service android:name=".RxBridgeService" android:exported="false" android:foregroundServiceType="microphone|mediaPlayback" android:stopWithTask="false" />
+        <service android:name=".FirmwareService" android:exported="false" android:stopWithTask="false" />
+        <provider android:name=".ReportProvider" android:authorities="com.hfpvoipfix.report" android:exported="false" android:grantUriPermissions="true" />
         <!-- LSPosed legacy-module recommended scope. -->
         <meta-data
             android:name="xposedscope"

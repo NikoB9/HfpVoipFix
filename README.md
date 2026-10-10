@@ -46,4 +46,8 @@ The important routing success criterion is that MediaTek goes directly from norm
 
 ## Safety
 
-This remains experimental. Keep call volume low during testing. Do not read active `/proc/asound/card*/pcm*/sub*/status` nodes on the MT6785 test device; that previously triggered a kernel panic.
+This remains experimental. Keep call volume low during testing. Avoid reading active `/proc/asound/card*/pcm*/sub*/status` nodes on the test device; this previously caused a kernel panic.
+
+## Diagnostic data
+
+Do not commit raw bug reports, Bluetooth captures, system-library archives, device inventories, or per-device fingerprints. They can contain identifiers and proprietary system details. The version notes in this repository contain a sanitized summary; keep raw diagnostic files private and review any export before sharing it.
