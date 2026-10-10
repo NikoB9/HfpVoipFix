@@ -55,7 +55,7 @@ final class FirmwareArchive {
                 put(zip,"errors.txt",errors.toString().getBytes(StandardCharsets.UTF_8));
                 put(zip,"system-info.txt",identity.getBytes(StandardCharsets.UTF_8));
                 put(zip,"hci-transport.txt",transport.getBytes(StandardCharsets.UTF_8));
-                put(zip,"README.txt",("HfpVoipLab 1.7.9 · collecte statique\n"+count+" fichiers, "+total+" octets.\n"+
+                put(zip,"README.txt",("HfpVoipLab 1.7.10 · collecte statique\n"+count+" fichiers, "+total+" octets.\n"+
                     "Bibliothèques ELF et XML copiés sans modification, SHA-256 dans inventory.tsv.\n"+
                     "Aucun enregistrement sonore, contact, numéro, journal HCI brut ou NVRAM exporté. Métadonnées HCI sélectionnées dans hci-transport.txt.\n"+
                     "Aucune lecture /proc/asound, aucun accès PCM, aucun tinymix, aucune modification système.\n"+

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.10-lab
+
+- Fixed a D3 crash after the microphone and SCO route were confirmed: the bridge used `input.getId()` even though D3 intentionally lets Android select the default microphone (`input` is null). It now checks the already confirmed `inputId`.
+- Bumped package version to `versionCode 45` for an in-place update.
+
+
 ## 1.7.9-lab
 
 - Fixed a race where MIUI could return a null routed microphone between two route lookups, crashing the D3 bridge before it could confirm the route.
