@@ -1,14 +1,142 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíó6N‹Z–‹­¦ëeŠw¬ÕÁ…­…”½´¹¡™ÁÙ½¥Á™¥àì)¥µÁ½ÉÐ…¹‘É½¥¹…ÁÀ¸¨ì)¥µÁ½ÉÐ…¹‘É½¥¹½Ì¸¨ì)¥µÁ½ÉÐ…¹‘É½¥¹½¹Ñ•¹Ð¸¨ì)¥µÁ½ÉÐ…¹‘É½¥¹Ý¥‘•Ð¸¨ì)¥µÁ½ÉÐ©…Ù„¹¥¼¸¨ì)¥µÁ½ÉÐ©…Ù„¹¹¥¼¹¡…ÉÍ•Ð¹MÑ…¹‘…É‘¡…ÉÍ•ÑÌì)¥µÁ½ÉÐ©…Ù„¹¹¥¼¹™¥±”¹¥±•Ìì)¥µÁ½ÉÐ©…Ù„¹ÕÑ¥°¹½¹ÕÉÉ•¹Ð¸¨ì()ÁÕ‰±¥Œ™¥¹…°±…ÍÌ5½‘•Ñ¥Ù¥Ñä•áÑ•¹‘ÌÑ¥Ù¥Ñäì(€€€ÁÉ¥Ù…Ñ”™¥¹…°á•ÕÑ½ÉM•ÉÙ¥”Ý½É¬õá•ÕÑ½ÉÌ¹¹•ÝM¥¹±•Q¡É•…‘á•ÕÑ½È ¤ì(€€€ÁÉ¥Ù…Ñ”™¥¹…°!…¹‘±•ÈÕ¤õ¹•Ü!…¹‘±•È¡1½½Á•È¹•Ñ5…¥¹1½½Á•È ¤¤ì(€€€ÁÉ¥Ù…Ñ”Q•áÑY¥•ÜÍÑ…ÑÕÌ±‘•Ñ…¥±Ì±¹½Ñ¥”ì(€€€ÁÉ¥Ù…Ñ”	ÕÑÑ½¸…ÁÁ±ä±ÍÑ…ÉÐ±ÍÑ½À±Í¹…À±Í¡…É”±É…Ñ”±¥¹ÍÁ•Ð±™¥ÉµÝ…É”±™¥ÉµÝ…É•M¡…É”±™¥ÉµÝ…É•%¹ÍÁ•Ðì(€€€ÁÉ¥Ù…Ñ”Q•áÑY¥•Ü™¥ÉµÝ…É•MÑ…ÑÕÌ±ÉáMÑ…ÑÕÌ±ÑÉ…¹ÍÁ½ÉÑMÑ…ÑÕÌì(€€€ÁÉ¥Ù…Ñ”	ÕÑÑ½¸ÉáÉ´±ÉáMÑ½À±ÁÉ½‰•	ÕÑÑ½¸ì(€€€ÁÉ¥Ù…Ñ”MÁ¥¹¹•Èµ½‘•Ì±…‘Ù…¹•‘5½‘•Ìì(€€€ÁÉ¥Ù…Ñ”‘¥ÑQ•áÐÁ¡½¹•9Õµ‰•Èì(€€€ÁÉ¥Ù…Ñ”¡•­	½àÉ¥Í¬ì(€€€ÁÉ¥Ù…Ñ”‰½½±•…¸Ù¥Í¥‰±”±Ý½É­¥¹œì(€€€ÁÉ¥Ù…Ñ”MÑÉ¥¹œÉ•ÅÕ•ÍÑ•ô‰¹½¸Û¥É¥™§¤ˆì(€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹mtAI%5Ie}%Lõì‰½‰Í•ÉÙ”ˆ°‰Í½™Ñ}Éàˆ°‰Í½™Ñ}Ñà‰ôì(€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹mtAI%5Ie}95LõìˆÀƒ
-ÜS¥³¥Á¡½¹”¹‘É½¥ˆ°‰Èƒ
-ÜK¥•ÁÑ¥½¸Ù…±¥“¥”ˆ°‰Ìƒ
-ÜÍÍ…¤µ¥É¼‰ôì(€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹mtY9}%Lõìˆˆ°‰Ù½¥Àˆ°‰Ý‰Ìˆ°‰•¹‘Á½¥¹ÑÌˆ°‰‰åÁ…ÍÌˆ°‰‰åÁ…ÍÍ}½µ´ˆ°‰½‘•Œˆ°‰Éàˆ°‰Ñàˆ°‰‰É¥‘”‰ôì(€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹mtIMU1QLõì‰9½¸ƒ¥Ù…±×¤ˆ°‰M¥±•¹”ˆ°‰	¥À½¹Ñ¥¹Ôˆ°‰I•Ñ½ÕÈµ¥É½Á¡½¹”ˆ°‰Y½¥àÉ—Õ”µ…¥Ì“¥™½É·¥”ˆ°‰Y½¥à±…¥É”ˆ°‰M½¸Õ¹¥ÅÕ•µ•¹Ð…Ô“¥‰ÕÐ½Ôƒ€±„™¥¸ˆ°‰ÕÑÉ”‰ôì(€€€ÁÉ¥Ù…Ñ”…¹‘É½¥¹½¹Ñ•¹Ð¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì ¥íÉ•ÑÕÉ¸•ÑM¡…É•‘AÉ•™•É•¹•Ì ‰…ÁÑÕÉ”ˆ°À¤íô(€€€ÁÉ¥Ù…Ñ”Ù½¥…Ñ¥½¸¡MÑÉ¥¹œÌ¥íÍÑ…ÉÑ½É•É½Õ¹‘M•ÉÙ¥”¡¹•Ü%¹Ñ•¹Ð¡Ñ¡¥Ì±…ÁÑÕÉ•M•ÉÙ¥”¹±…ÍÌ¤¹Í•ÑÑ¥½¸¡Ì¤¤íô(€€€ÁÉ¥Ù…Ñ”Ù½¥Ñ•áÐ¡1¥¹•…É1…å½ÕÐ°±MÑÉ¥¹œÌ±¥¹ÐÍ¥é”¥íQ•áÑY¥•ÜÐõ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤íÐ¹Í•ÑQ•áÐ¡Ì¤íÐ¹Í•ÑQ•áÑM¥é”¡Í¥é”¤íÐ¹Í•ÑA…‘‘¥¹œ À°ÄÈ°À°ÄÈ¤í°¹…‘‘Y¥•Ü¡Ð¤íô(€€€ÁÉ¥Ù…Ñ”	ÕÑÑ½¸‰ÕÑÑ½¸¡1¥¹•…É1…å½ÕÐ°±MÑÉ¥¹œÌ±IÕ¹¹…‰±”È¥í	ÕÑÑ½¸ˆõ¹•Ü	ÕÑÑ½¸¡Ñ¡¥Ì¤íˆ¹Í•ÑQ•áÐ¡Ì¤íˆ¹Í•Ñ±±…ÁÌ¡™…±Í”¤íˆ¹Í•Ñ=¹±¥­1¥ÍÑ•¹•È¡Ø´ùÈ¹ÉÕ¸ ¤¤í°¹…‘‘Y¥•Ü¡ˆ¤íÉ•ÑÕÉ¸ˆíô(€€€ÁÉ¥Ù…Ñ”Ù½¥Ñ½…ÍÐ¡MÑÉ¥¹œÌ¥í¹½Ñ¥”¹Í•ÑQ•áÐ¡Ì¤íô(€€€ÁÉ¥Ù…Ñ”MÑÉ¥¹œÍ•±•Ñ•‘5½‘” ¥í¥˜¡…‘Ù…¹•‘5½‘•Ì„õ¹Õ±°˜™…‘Ù…¹•‘5½‘•Ì¹•ÑM•±•Ñ•‘%Ñ•µA½Í¥Ñ¥½¸ ¤øÀ¥É•ÑÕÉ¸Y9}%Mm…‘Ù…¹•‘5½‘•Ì¹•ÑM•±•Ñ•‘%Ñ•µA½Í¥Ñ¥½¸ ¥tíÉ•ÑÕÉ¸AI%5Ie}%Mmµ½‘•Ì¹•ÑM•±•Ñ•‘%Ñ•µA½Í¥Ñ¥½¸ ¥tíô(€€€ÁÉ¥Ù…Ñ”Ù½¥Í¡½Ý5½‘” ¥í¥˜¡‘•Ñ…¥±Ìôõ¹Õ±±ññµ½‘•Ìôõ¹Õ±°¥É•ÑÕÉ¸íMÑÉ¥¹œ¥õÍ•±•Ñ•‘5½‘” ¤í‘•Ñ…¥±Ì¹Í•ÑQ•áÐ¡1…‰5½‘•Ì¹Q%1Mm1…‰5½‘•Ì¹¥¹‘•à¡¥¥t¬‰q¹5%U$€ÄÈ¸Ô€èË¥ÍÕ±Ñ…Ð“Še•ã¥ÕÑ¥½¸ƒ€Û¥É¥™¥•È‘…¹Ì±”É…ÁÁ½ÉÐ¸ˆ¤íÉ•™É•Í  ¤íô(€€€ÁÉ¥Ù…Ñ”Ù½¥Ñ…Í¬¡¡•­•‘Q…Í¬È¥í¥˜¡Ý½É­¥¹œ¥É•ÑÕÉ¸íÝ½É­¥¹œõÑÉÕ”íÉ•™É•Í  ¤íÝ½É¬¹•á•ÕÑ”  ¤´ùì(€€€€€€€ÑÉåíÈ¹ÉÕ¸ ¤íõ…Ñ ¡á•ÁÑ¥½¸”¥íÕ¤¹Á½ÍÐ  ¤´ùÑ½…ÍÐ ‰ÉÉ•ÕÈ€è€ˆ­”¹•Ñ5•ÍÍ…” ¤¤¤íô(€€€€€€€™¥¹…±±åíÕ¤¹Á½ÍÐ  ¤´ùíÝ½É­¥¹œõ™…±Í”íÉ•™É•Í  ¤íô¤íô(€€€ô¤íô(€€€ÁÉ¥Ù…Ñ”¥¹Ñ•É™…”¡•­•‘Q…Í­íÙ½¥ÉÕ¸ ¥Ñ¡É½ÝÌá•ÁÑ¥½¸íô(€€€=Ù•ÉÉ¥‘”ÁÕ‰±¥ŒÙ½¥½¹É•…Ñ”¡	Õ¹‘±”ˆ¥íÍÕÁ•È¹½¹É•…Ñ”¡ˆ¤ì(€€€€€€€MÉ½±±Y¥•ÜÍÉ½±°õ¹•ÜMÉ½±±Y¥•Ü¡Ñ¡¥Ì¤í1¥¹•…É1…å½ÕÐ°õ¹•Ü1¥¹•…É1…å½ÕÐ¡Ñ¡¥Ì¤í°¹Í•Ñ=É¥•¹Ñ…Ñ¥½¸ Ä¤í¥¹ÐÁ…ô¡¥¹Ð¤ Äà©•ÑI•Í½ÕÉ•Ì ¤¹•Ñ¥ÍÁ±…å5•ÑÉ¥Ì ¤¹‘•¹Í¥Ñä¤í°¹Í•ÑA…‘‘¥¹œ¡Á…±Á…±Á…±Á…¤íÍÉ½±°¹…‘‘Y¥•Ü¡°¤í1¥¹•…É1…å½ÕÐÉ½½Ðõ°ì(€€€€€€€Ñ•áÐ¡°°‰!™ÁY½¥Á1…ˆ€Ä¸Ü¸àˆ°ÈÜ¤íÑ•áÐ¡°°‰ÈË¥•ÁÑ¥½¸Ù…±¥“¥”ƒ
-ÜÌ•ÍÍ…¤µ¥É¼ƒ
-ÜÕ¸É…ÁÁ½ÉÐˆ°ÄØ¤ì(€€€€€€€ÍÑ…ÑÕÌõ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤íÍÑ…ÑÕÌ¹Í•ÑQ•áÑM¥é” ÄÔ¤í°¹…‘‘Y¥•Ü¡ÍÑ…ÑÕÌ¤ì(€€€€€€€¹½Ñ¥”õ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤í¹½Ñ¥”¹Í•ÑQ•áÑM¥é” ÄÔ¤í°¹…‘‘Y¥•Ü¡¹½Ñ¥”¤ì(€€€€€€€ÁÉ½‰•	ÕÑÑ½¸õ‰ÕÑÑ½¸¡°°‰[¥É¥™¥•ÈÉ½½Ð•Ðµ½‘Õ±”	±Õ•Ñ½½Ñ ˆ° ¤´ùÑ…Í¬  ¤´ùíMÑÉ¥¹œÀõ1…‰AÉ½‰”¹É•…¡Ñ¡¥Ì¤íÉ•ÅÕ•ÍÑ•õI½½Ð¹½µµ…¹ ‰•ÑÁÉ½À€ˆ­1…‰5½‘•Ì¹AI=@°ÄÀÀÀ°Ð¤¹ÑÉ¥´ ¤íÕ¤¹Á½ÍÐ  ¤´ùÑ½…ÍÐ ‰K¥Á½¹Í”Ë¥•¹Ñ”É—Õ”‘ÔÁÉ½•ÍÍÕÌ	±Õ•Ñ½½Ñ ¸ˆ¤¤íô¤¤ì(€€€€€€€Ñ•áÐ¡°°‰ÁÁ•±Ì‘ÔM…µÍÕ¹œ°Á¥±½Ó¥Ì‘•ÁÕ¥Ì±”I•‘µ¤ˆ°ÈÄ¤ì(€€€€€€€Á¡½¹•9Õµ‰•Èõ¹•Ü‘¥ÑQ•áÐ¡Ñ¡¥Ì¤íÁ¡½¹•9Õµ‰•È¹Í•Ñ!¥¹Ð ‰9Õ·¥É¼ƒ€…ÁÁ•±•ÈÍÕÈ±”M…µÍÕ¹œˆ¤íÁ¡½¹•9Õµ‰•È¹Í•Ñ%¹ÁÕÑQåÁ”¡…¹‘É½¥¹Ñ•áÐ¹%¹ÁÕÑQåÁ”¹QeA}1MM}A!=9¤íÁ¡½¹•9Õµ‰•È¹Í•ÑQ•áÐ ˆØØØˆ¤í°¹…‘‘Y¥•Ü¡Á¡½¹•9Õµ‰•È¤ì(€€€€€€€‰ÕÑÑ½¸¡°°‰ÁÁ•±•È‘•ÁÕ¥Ì±”I•‘µ¤ˆ° ¤´ù½¹ÑÉ½±…±° ‰‘¥…°ˆ¤¤ì(€€€€€€€‰ÕÑÑ½¸¡°°‰K¥Á½¹‘É”ƒ€³Še…ÁÁ•°‘ÔM…µÍÕ¹œˆ° ¤´ù½¹ÑÉ½±…±° ‰…¹ÍÝ•Èˆ¤¤ì(€€€€€€€‰ÕÑÑ½¸¡°°‰I…É½¡•È³Še…ÁÁ•°‘ÔM…µÍÕ¹œˆ° ¤´ù½¹ÑÉ½±…±° ‰¡…¹ÕÀˆ¤¤ì(€€€€€€€Ñ•áÐ¡°°‰1•Ì‰½ÕÑ½¹ÌÁ¥±½Ñ•¹Ð±”M…µÍÕ¹œÙ¥„!@¸1”µ½‘”€À±…¥ÍÍ”³Še…ÁÁ±¥…Ñ¥½¸S¥³¥Á¡½¹”¹‘É½¥Ÿ¥É•È³Še…ÁÁ•°€ìÈ½ÌÕÑ¥±¥Í•¹Ð±”Á½¹Ð‘”Ñ•ÍÐ¸ˆ°ÄÐ¤ì(€€€€€€€Ñ•áÐ¡°°‰¡½¥Í¥ÈÕ¸Á…É½ÕÉÌˆ°ÈÄ¤ì(€€€€€€€µ½‘•Ìõ¹•ÜMÁ¥¹¹•È¡Ñ¡¥Ì¤íµ½‘•Ì¹Í•Ñ‘…ÁÑ•È¡¹•ÜÉÉ…å‘…ÁÑ•Èðø¡Ñ¡¥Ì±…¹‘É½¥¹H¹±…å½ÕÐ¹Í¥µÁ±•}ÍÁ¥¹¹•É}‘É½Á‘½Ý¹}¥Ñ•´±AI%5Ie}95L¤¤íµ½‘•Ì¹Í•ÑM•±•Ñ¥½¸ Ä¤í°¹…‘‘Y¥•Ü¡µ½‘•Ì¤ì(€€€€€€€‘•Ñ…¥±Ìõ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤í‘•Ñ…¥±Ì¹Í•ÑQ•áÑM¥é” ÄØ¤í°¹…‘‘Y¥•Ü¡‘•Ñ…¥±Ì¤ì(€€€€€€€µ½‘•Ì¹Í•Ñ=¹%Ñ•µM•±•Ñ•‘1¥ÍÑ•¹•È¡¹•Ü…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•Ü¹=¹%Ñ•µM•±•Ñ•‘1¥ÍÑ•¹•È ¥íÁÕ‰±¥ŒÙ½¥½¹9½Ñ¡¥¹M•±•Ñ•¡…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•ÜðüøÀ¥íõÁÕ‰±¥ŒÙ½¥½¹%Ñ•µM•±•Ñ•¡…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•ÜðüøÀ±…¹‘É½¥¹Ù¥•Ü¹Y¥•ÜØ±¥¹Ð¤±±½¹œ¥¥í¥˜¡…‘Ù…¹•‘5½‘•Ì„õ¹Õ±°˜™…‘Ù…¹•‘5½‘•Ì¹•ÑM•±•Ñ•‘%Ñ•µA½Í¥Ñ¥½¸ ¤„ôÀ¥…‘Ù…¹•‘5½‘•Ì¹Í•ÑM•±•Ñ¥½¸ À¤íÍ¡½Ý5½‘” ¤íõô¤ì(€€€€€€€É¥Í¬õ¹•Ü¡•­	½à¡Ñ¡¥Ì¤íÉ¥Í¬¹Í•ÑQ•áÐ ‰ÕÑ½É¥Í•È±•ÌÍÑÉ…Ó¥¥•Ì•áÃ¥É¥µ•¹Ñ…±•ÌÁ½ÕÈ•ÑÑ”½ÕÙ•ÉÑÕÉ”ˆ¤íÉ¥Í¬¹Í•Ñ¡•­•¡™…±Í”¤íÉ¥Í¬¹Í•Ñ=¹¡•­•‘¡…¹•1¥ÍÑ•¹•È ¡ˆÄ±à¤´ùÉ•™É•Í  ¤¤í°¹…‘‘Y¥•Ü¡É¥Í¬¤ì(€€€€€€€…ÁÁ±äõ‰ÕÑÑ½¸¡°°‰ÁÁ±¥ÅÕ•È…ÔÁÉ½¡…¥¸…ÁÁ•°ˆ±Ñ¡¥Ìèé…ÁÁ±å5½‘”¤ì(€€€€€€€Ñ•áÐ¡°°‰A…É½ÕÉÌ€è¡½¥Í¥ÈÈ€£¥½ÕÑ•ÈÍÕÈ±”I•‘µ¤¤½ÔÌ€¡•¹Ù½å•È±”µ¥É¼‘ÔI•‘µ¤…Ô½ÉÉ•ÍÁ½¹‘…¹Ð¤°…ÁÁ±¥ÅÕ•È¡½ÉÌ…ÁÁ•°°“¥µ…ÉÉ•È±„…ÁÑÕÉ”°ÁÕ¥Ì…Éµ•È…Ù…¹Ð“Še…ÁÁ•±•È¸Ì•ÍÐÕ¸•ÍÍ…¤Q`Í•Õ°€è¥°»Še•¹É•¥ÍÑÉ”É¥•¸•Ð±„¹½Ñ¥™¥…Ñ¥½¸Á•Éµ•Ð³Še…ÉË©Ð¥µ·¥‘¥…Ð¸1”½ÉÉ•ÍÁ½¹‘…¹Ð‘½¥Ð½¹™¥Éµ•È±”µ¥É¼¸1”É½ÕÑ…”¹…Ñ¥˜¹‘É½¥É•ÍÑ”¥¹¡…¹Ÿ¤¡½ÉÌ…ÁÁ•°¸ˆ°ÄÔ¤ì(€€€€€€€Ñ•áÐ¡°°‰A½¹Ð…Õ‘¥¼ƒ
-ÜÕ¹”‘¥É•Ñ¥½¸Á…È…ÁÁ•°ˆ°ÈÄ¤ì(€€€€€€€ÉáMÑ…ÑÕÌõ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤í°¹…‘‘Y¥•Ü¡ÉáMÑ…ÑÕÌ¤ì(€€€€€€€ÉáÉ´õ‰ÕÑÑ½¸¡°°‰Éµ•È±”µ½‘”¡½¥Í¤Á½ÕÈ±”ÁÉ½¡…¥¸…ÁÁ•°ˆ° ¤´ùì(€€€€€€€€€€€¥˜ …1…‰5½‘•Ì¹Í½™ÑÝ…É•	É¥‘”¡Í•±•Ñ•‘5½‘” ¤¤¥íÑ½…ÍÐ ‰3Še…Éµ•µ•¹Ð…Õ‘¥¼Í•ÉÐÍ•Õ±•µ•¹Ð…Õàµ½‘•ÌÈ•ÐÌ¸ˆ¤íÉ•ÑÕÉ¸íô(€€€€€€€€€€€¥˜¡¡•­M•±™A•Éµ¥ÍÍ¥½¸¡…¹‘É½¥¹5…¹¥™•ÍÐ¹Á•Éµ¥ÍÍ¥½¸¹I=I}U%<¤„õ…¹‘É½¥¹½¹Ñ•¹Ð¹Á´¹A…­…•5…¹…•È¹AI5%MM%=9}I9Q¥íÉ•ÅÕ•ÍÑA•Éµ¥ÍÍ¥½¹Ì¡¹•ÜMÑÉ¥¹muí…¹‘É½¥¹5…¹¥™•ÍÐ¹Á•Éµ¥ÍÍ¥½¸¹I=I}U%=ô°ÄØÀ¤íÑ½…ÍÐ ‰ÕÑ½É¥Í•È±„Á•Éµ¥ÍÍ¥½¸µ¥É½Á¡½¹”ÁÕ¥Ì…ÁÁÕå•È‘”¹½ÕÙ•…ÔÍÕÈÉµ•È¸ˆ¤íÉ•ÑÕÉ¸íô(€€€€€€€€€€€¥˜ …É¥Í¬¹¥Í¡•­• ¤¥íÑ½…ÍÐ ‰½¡•È³Še…ÕÑ½É¥Í…Ñ¥½¸‘•ÌÍÑÉ…Ó¥¥•Ì•áÃ¥É¥µ•¹Ñ…±•Ì¸ˆ¤íÉ•ÑÕÉ¸íô(€€€€€€€€€€€ÍÑ…ÉÑ½É•É½Õ¹‘M•ÉÙ¥”¡¹•Ü%¹Ñ•¹Ð¡Ñ¡¥Ì±Iá	É¥‘•M•ÉÙ¥”¹±…ÍÌ¤¹ÁÕÑáÑÉ„ ‰µ½‘”ˆ±Í•±•Ñ•‘5½‘” ¤¤¤ì(€€€€€€€ô¤ì(€€€€€€€ÉáMÑ½Àõ‰ÕÑÑ½¸¡°°‰ÉË©Ñ•È¥µ·¥‘¥…Ñ•µ•¹Ð±”Á½¹Ðˆ° ¤´ùÍÑ…ÉÑM•ÉÙ¥”¡¹•Ü%¹Ñ•¹Ð¡Ñ¡¥Ì±Iá	É¥‘•M•ÉÙ¥”¹±…ÍÌ¤¹Í•ÑÑ¥½¸ ‰ÍÑ½Àˆ¤¤¤ì(€€€€€€€1¥¹•…É1…å½ÕÐ…‘Ù…¹•õ¹•Ü1¥¹•…É1…å½ÕÐ¡Ñ¡¥Ì¤í…‘Ù…¹•¹Í•Ñ=É¥•¹Ñ…Ñ¥½¸ Ä¤í…‘Ù…¹•¹Í•ÑY¥Í¥‰¥±¥Ñä¡…¹‘É½¥¹Ù¥•Ü¹Y¥•Ü¹=9¤ì(€€€€€€€‰ÕÑÑ½¸¡É½½Ð°‰=ÕÑ¥±Ì…Ù…¹¥Ìƒ
-Ü!$°™¥ÉµÝ…É”•Ð…ÕÑÉ•Ìµ½‘•Ìˆ° ¤´ù…‘Ù…¹•¹Í•ÑY¥Í¥‰¥±¥Ñä¡…‘Ù…¹•¹•ÑY¥Í¥‰¥±¥Ñä ¤ôõ…¹‘É½¥¹Ù¥•Ü¹Y¥•Ü¹Y%M%	1ý…¹‘É½¥¹Ù¥•Ü¹Y¥•Ü¹=9é…¹‘É½¥¹Ù¥•Ü¹Y¥•Ü¹Y%M%	1¤¤ì(€€€€€€€É½½Ð¹…‘‘Y¥•Ü¡…‘Ù…¹•¤ì(€€€€€€€°õ…‘Ù…¹•ì(€€€€€€€Ñ•áÐ¡°°‰5½‘”•áÃ¥É¥µ•¹Ñ…°ÍÕÁÁ³¥µ•¹Ñ…¥É”ˆ°ÈÄ¤ì(€€€€€€€©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍÐñMÑÉ¥¹œø…‘Ù…¹•‘9…µ•Ìõ¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍÐðø ¤í…‘Ù…¹•‘9…µ•Ì¹…‘ ‰ÕÕ¸ƒ
-Ü…É‘•È±”Á…É½ÕÉÌÁÉ¥¹¥Á…°ˆ¤í™½È¡¥¹Ð¤ôÄí¤ñY9}%L¹±•¹Ñ í¤¬¬¥…‘Ù…¹•‘9…µ•Ì¹…‘¡1…‰5½‘•Ì¹95Mm1…‰5½‘•Ì¹¥¹‘•à¡Y9}%Mm¥t¥t¤ì(€€€€€€€…‘Ù…¹•‘5½‘•Ìõ¹•ÜMÁ¥¹¹•È¡Ñ¡¥Ì¤í…‘Ù…¹•‘5½‘•Ì¹Í•Ñ‘…ÁÑ•È¡¹•ÜÉÉ…å‘…ÁÑ•Èðø¡Ñ¡¥Ì±…¹‘É½¥¹H¹±…å½ÕÐ¹Í¥µÁ±•}ÍÁ¥¹¹•É}‘É½Á‘½Ý¹}¥Ñ•´±…‘Ù…¹•‘9…µ•Ì¤¤í…‘Ù…¹•‘5½‘•Ì¹Í•ÑM•±•Ñ¥½¸ À¤í°¹…‘‘Y¥•Ü¡…‘Ù…¹•‘5½‘•Ì¤ì(€€€€€€€…‘Ù…¹•‘5½‘•Ì¹Í•Ñ=¹%Ñ•µM•±•Ñ•‘1¥ÍÑ•¹•È¡¹•Ü…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•Ü¹=¹%Ñ•µM•±•Ñ•‘1¥ÍÑ•¹•È ¥íÁÕ‰±¥ŒÙ½¥½¹9½Ñ¡¥¹M•±•Ñ•¡…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•ÜðüøÀ¥íõÁÕ‰±¥ŒÙ½¥½¹%Ñ•µM•±•Ñ•¡…¹‘É½¥¹Ý¥‘•Ð¹‘…ÁÑ•ÉY¥•ÜðüøÀ±…¹‘É½¥¹Ù¥•Ü¹Y¥•ÜØ±¥¹Ð¤±±½¹œ¥¥íÍ¡½Ý5½‘” ¤íõô¤ì(€€€€€€€Ñ•áÐ¡°°‰QÉ…¹ÍÁ½ÉÐM<ƒ
-Ü‘¥…¹½ÍÑ¥Œ¹…Ñ¥˜ˆ°ÈÄ¤ì(€€€€€€€ÑÉ…¹ÍÁ½ÉÑMÑ…ÑÕÌõ¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤í°¹…‘‘Y¥•Ü¡ÑÉ…¹ÍÁ½ÉÑMÑ…ÑÕÌ¤ì(€€€€€€€Ñ•áÐ¡°°‰5½‘Õ±”	±Õ•Ñ½½Ñ …ÑÑ•¹‘Ô€è€Ä¸Ü¸à¸È½Ì¹”ÏŠe½ÕÙÉ•¹ÐÅ×Še…ÁË¡Ì½¹™¥Éµ…Ñ¥½¸‘Ôµ½‘”°‘ÔM<•Ð‘ÔÉ½ÕÑ…”Ë¥•°¸A½ÕÈÌ°Á…É±•È¹½Éµ…±•µ•¹ÐÁ•¹‘…¹Ð³Še…ÁÁ•°•Ð‘•µ…¹‘•È…Ô½ÉÉ•ÍÁ½¹‘…¹ÐÍ¤±„Ù½¥à•ÍÐ±…¥É”¸ÉË©Ñ•È±”Á½¹Ð½ÔÉ…É½¡•ÈÁ½ÕÈ½ÕÁ•È³Še…¡Ìµ¥É¼¸U¹”¹½ÕÙ•±±”ÑÉ…”!$»Še•ÍÐÁ…Ì»¥•ÍÍ…¥É”¸ˆ°ÄÔ¤ì(€€€€€€€‰ÕÑÑ½¸¡°°ˆÄƒ
-ÜAË¥Á…É•È±„ÑÉ…”!$ˆ° ¤´ù¹•Ü±•ÉÑ¥…±½œ¹	Õ¥±‘•È¡Ñ¡¥Ì¤¹Í•ÑQ¥Ñ±” ‰Ñ¥Ù•ÈÑ•µÁ½É…¥É•µ•¹Ð±„ÑÉ…”	±Õ•Ñ½½Ñ €üˆ¤(€€€€€€€€€€€€¹Í•Ñ5•ÍÍ…” ‰¹‘É½¥Á½ÕÉÉ„ÍÑ½­•ÈÕ¸©½ÕÉ¹…°	±Õ•Ñ½½Ñ ‰ÉÕÐÍ•¹Í¥‰±”ÍÕÈ±”Ó¥³¥Á¡½¹”Á•¹‘…¹Ð•Ð•ÍÍ…¤¸1”±…ˆ¹”Á…ÉÑ…”ÅÕ”‘•Ì·¥Ñ…‘½¹»¥•ÌÑ•¡¹¥ÅÕ•Ì€èÁ…Ì‘”½¹Ñ•¹Ô0°¹Õ·¥É¼°…‘É•ÍÍ”°³¤½ÔÍ½¸¸1”Ë¥±…”ÁË¥¥‘•¹ÐÍ•É„Í…ÕÙ•…É“¤¸¥Í…Ñ¥Ù•È½Ë¥…Ñ¥Ù•È	±Õ•Ñ½½Ñ ¡½ÉÌ…ÁÁ•°•¹ÍÕ¥Ñ”€ì±”±…ˆ¹”ÍÕÁÁÉ¥µ”…ÕÕ¸…ÁÁ…É•¥°…ÁÁ…¥Ë¤¸5%U$Á•ÕÐ¥¹½É•È”Ë¥±…”=M@¸ˆ¤(€€€€€€€€€€€€¹Í•Ñ9•…Ñ¥Ù•	ÕÑÑ½¸ ‰¹¹Õ±•Èˆ±¹Õ±°¤¹Í•ÑA½Í¥Ñ¥Ù•	ÕÑÑ½¸ ‰AË¥Á…É•Èˆ°¡±Ü¤´ùÑ…Í¬  ¤´ùíQÉ…¹ÍÁ½ÉÑ¥…¹½ÍÑ¥Œ¹Í•Ñ1½¥¹œ¡Ñ¡¥Ì±ÑÉÕ”¤íÕ¤¹Á½ÍÐ  ¤´ùÑ½…ÍÐ ‰QÉ…”‘•µ…¹“¥”¸¥Í…Ñ¥Ù•ÈÁÕ¥ÌË¥…Ñ¥Ù•È	±Õ•Ñ½½Ñ ‘…¹ÌÍ•ÌË¥±…•Ì°…ÑÑ•¹‘É”±„É•½¹¹•á¥½¸‘ÔM…µÍÕ¹œ°ÁÕ¥Ì•™™•ÑÕ•Èƒn4ÚÚ$z{-®éÜj×iser explicitement les stratÃ©gies expÃ©rimentales.");return;}
+package com.hfpvoipfix;
+import android.app.*;
+import android.os.*;
+import android.content.*;
+import android.widget.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.concurrent.*;
+
+public final class ModeActivity extends Activity {
+    private final ExecutorService work=Executors.newSingleThreadExecutor();
+    private final Handler ui=new Handler(Looper.getMainLooper());
+    private TextView status,details,notice;
+    private Button apply,start,stop,snap,share,rate,inspect,firmware,firmwareShare,firmwareInspect;
+    private TextView firmwareStatus,rxStatus,transportStatus;
+    private Button rxArm,rxStop,probeButton;
+    private Spinner modes,advancedModes;
+    private EditText phoneNumber;
+    private CheckBox risk;
+    private boolean visible,working;
+    private String requested="non vÃ©rifiÃ©";
+    private static final String[] PRIMARY_IDS={"observe","soft_rx","soft_tx"};
+    private static final String[] PRIMARY_NAMES={"0 Â· TÃ©lÃ©phone Android","D2 Â· RÃ©ception validÃ©e","D3 Â· Essai micro"};
+    private static final String[] ADVANCED_IDS={"","voip","wbs","endpoints","bypass","bypass_comm","codec","rx","tx","bridge"};
+    private static final String[] RESULTS={"Non Ã©valuÃ©","Silence","Bip continu","Retour microphone","Voix reÃ§ue mais dÃ©formÃ©e","Voix claire","Son uniquement au dÃ©but ou Ã  la fin","Autre"};
+    private android.content.SharedPreferences prefs(){return getSharedPreferences("capture",0);}
+    private void action(String s){startForegroundService(new Intent(this,CaptureService.class).setAction(s));}
+    private void text(LinearLayout l,String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setPadding(0,12,0,12);l.addView(t);}
+    private Button button(LinearLayout l,String s,Runnable r){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setOnClickListener(v->r.run());l.addView(b);return b;}
+    private void toast(String s){notice.setText(s);}
+    private String selectedMode(){if(advancedModes!=null&&advancedModes.getSelectedItemPosition()>0)return ADVANCED_IDS[advancedModes.getSelectedItemPosition()];return PRIMARY_IDS[modes.getSelectedItemPosition()];}
+    private void showMode(){if(details==null||modes==null)return;String id=selectedMode();details.setText(LabModes.DETAILS[LabModes.index(id)]+"\nMIUI 12.5 : rÃ©sultat dâ€™exÃ©cution Ã  vÃ©rifier dans le rapport.");refresh();}
+    private void task(CheckedTask r){if(working)return;working=true;refresh();work.execute(()->{
+        try{r.run();}catch(Exception e){ui.post(()->toast("Erreur : "+e.getMessage()));}
+        finally{ui.post(()->{working=false;refresh();});}
+    });}
+    private interface CheckedTask{void run()throws Exception;}
+    @Override public void onCreate(Bundle b){super.onCreate(b);
+        ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
+        text(l,"HfpVoipLab 1.7.8",27);text(l,"D2 rÃ©ception validÃ©e Â· D3 essai micro Â· un rapport",16);
+        status=new TextView(this);status.setTextSize(15);l.addView(status);
+        notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
+        probeButton=button(l,"VÃ©rifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("RÃ©ponse rÃ©cente reÃ§ue du processus Bluetooth."));}));
+        text(l,"Appels du Samsung, pilotÃ©s depuis le Redmi",21);
+        phoneNumber=new EditText(this);phoneNumber.setHint("NumÃ©ro Ã  appeler sur le Samsung");phoneNumber.setInputType(android.text.InputType.TYPE_CLASS_PHONE);phoneNumber.setText("666");l.addView(phoneNumber);
+        button(l,"Appeler depuis le Redmi",()->controlCall("dial"));
+        button(l,"RÃ©pondre Ã  lâ€™appel du Samsung",()->controlCall("answer"));
+        button(l,"Raccrocher lâ€™appel du Samsung",()->controlCall("hangup"));
+        text(l,"Les boutons pilotent le Samsung via HFP. Le mode 0 laisse lâ€™application TÃ©lÃ©phone Android gÃ©rer lâ€™appel ; D2/D3 utilisent le pont de test.",14);
+        text(l,"Choisir un parcours",21);
+        modes=new Spinner(this);modes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,PRIMARY_NAMES));modes.setSelection(1);l.addView(modes);
+        details=new TextView(this);details.setTextSize(16);l.addView(details);
+        modes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(advancedModes!=null&&advancedModes.getSelectedItemPosition()!=0)advancedModes.setSelection(0);showMode();}});
+        risk=new CheckBox(this);risk.setText("Autoriser les stratÃ©gies expÃ©rimentales pour cette ouverture");risk.setChecked(false);risk.setOnCheckedChangeListener((b1,x)->refresh());l.addView(risk);
+        apply=button(l,"Appliquer au prochain appel",this::applyMode);
+        text(l,"Parcours : choisir D2 (Ã©couter sur le Redmi) ou D3 (envoyer le micro du Redmi au correspondant), appliquer hors appel, dÃ©marrer la capture, puis armer avant dâ€™appeler. D3 est un essai TX seul : il nâ€™enregistre rien et la notification permet lâ€™arrÃªt immÃ©diat. Le correspondant doit confirmer le micro. Le routage natif Android reste inchangÃ© hors appel.",15);
+        text(l,"Pont audio Â· une direction par appel",21);
+        rxStatus=new TextView(this);l.addView(rxStatus);
+        rxArm=button(l,"Armer le mode choisi pour le prochain appel",()->{
+            if(!LabModes.softwareBridge(selectedMode())){toast("Lâ€™armement audio sert seulement aux modes D2 et D3.");return;}
+            if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},160);toast("Autoriser la permission microphone puis appuyer de nouveau sur Armer.");return;}
+            if(!risk.isChecked()){toast("Cocher lâ€™autorisation des stratÃ©gies expÃ©rimentales.");return;}
+            startForegroundService(new Intent(this,RxBridgeService.class).putExtra("mode",selectedMode()));
+        });
+        rxStop=button(l,"ArrÃªter immÃ©diatement le pont",()->startService(new Intent(this,RxBridgeService.class).setAction("stop")));
+        LinearLayout advanced=new LinearLayout(this);advanced.setOrientation(1);advanced.setVisibility(android.view.View.GONE);
+        button(root,"Outils avancÃ©s Â· HCI, firmware et autres modes",()->advanced.setVisibility(advanced.getVisibility()==android.view.View.VISIBLE?android.view.View.GONE:android.view.View.VISIBLE));
+        root.addView(advanced);
+        l=advanced;
+        text(l,"Mode expÃ©rimental supplÃ©mentaire",21);
+        java.util.ArrayList<String> advancedNames=new java.util.ArrayList<>();advancedNames.add("Aucun Â· garder le parcours principal");for(int i=1;i<ADVANCED_IDS.length;i++)advancedNames.add(LabModes.NAMES[LabModes.index(ADVANCED_IDS[i])]);
+        advancedModes=new Spinner(this);advancedModes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,advancedNames));advancedModes.setSelection(0);l.addView(advancedModes);
+        advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){showMode();}});
+        text(l,"Transport SCO Â· diagnostic natif",21);
+        transportStatus=new TextView(this);l.addView(transportStatus);
+        text(l,"Module Bluetooth attendu : 1.7.8. D2/D3 ne sâ€™ouvrent quâ€™aprÃ¨s confirmation du mode, du SCO et du routage rÃ©el. Pour D3, parler normalement pendant lâ€™appel et demander au correspondant si la voix est claire. ArrÃªter le pont ou raccrocher pour couper lâ€™accÃ¨s micro. Une nouvelle trace HCI nâ€™est pas nÃ©cessaire.",15);
+        button(l,"1 Â· PrÃ©parer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
+            .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le tÃ©lÃ©phone pendant cet essai. Le lab ne partage que des mÃ©tadonnÃ©es techniques : pas de contenu ACL, numÃ©ro, adresse, clÃ© ou son. Le rÃ©glage prÃ©cÃ©dent sera sauvegardÃ©. DÃ©sactiver/rÃ©activer Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairÃ©. MIUI peut ignorer ce rÃ©glage AOSP.")
+            .setNegativeButton("Annuler",null).setPositiveButton("PrÃ©parer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandÃ©e. DÃ©sactiver puis rÃ©activer Bluetooth dans ses rÃ©glages, attendre la reconnexion du Samsung, puis effectuer lâ€™essai."));})).show());
+        button(l,"2 Â· Ouvrir les rÃ©glages Bluetooth",()->{try{startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));}catch(ActivityNotFoundException e){toast("Ouvrir les rÃ©glages Bluetooth manuellement.");}});
+        button(l,"AprÃ¨s collecte Â· restaurer la journalisation",()->new AlertDialog.Builder(this).setTitle("Rapports dÃ©jÃ  collectÃ©s ?")
+            .setMessage("Collecter dâ€™abord le firmware et les mÃ©tadonnÃ©es HCI. Le redÃ©marrage Bluetooth aprÃ¨s restauration peut supprimer les traces systÃ¨me. Aucun changement des appareils appairÃ©s.")
+            .setNegativeButton("Annuler",null).setPositiveButton("Restaurer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,false);ui.post(()->toast("RÃ©glage prÃ©cÃ©dent restaurÃ©. DÃ©sactiver/rÃ©activer Bluetooth hors appel pour lâ€™appliquer."));})).show());
+        text(l,"Analyser le firmware audio",21);
+        firmwareStatus=new TextView(this);l.addView(firmwareStatus);
+        firmware=button(l,"Collecter les fichiers audio systÃ¨me",()->new AlertDialog.Builder(this).setTitle("Collecte statique, hors appel")
+            .setMessage("Copie en lecture seule des bibliothÃ¨ques audio/Bluetooth et XML systÃ¨me (128 Mio maximum). Les traces HCI existantes sont lues pour extraire uniquement les mÃ©tadonnÃ©es de transport ; les paquets bruts et le son sont exclus du ZIP. Les binaires sont conservÃ©s Ã  lâ€™identique. Le rapport dâ€™appels prÃ©cÃ©dent reste disponible. Garder les appels arrÃªtÃ©s pendant la collecte.")
+            .setNegativeButton("Annuler",null).setPositiveButton("Collecter",(d,w)->startForegroundService(new Intent(this,FirmwareService.class))).show());
+        firmwareInspect=button(l,"VÃ©rifier le contenu du ZIP firmware",()->inspectZip("HFP-Firmware.zip",new String[]{"README.txt","inventory.tsv","hci-transport.txt","errors.txt","system-info.txt"}));
+        firmwareShare=button(l,"Partager le firmware dans ChatGPT",()->{
+            Intent i=new Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM,ReportProvider.FIRMWARE);
+            i.setClipData(ClipData.newUri(getContentResolver(),"Firmware audio",ReportProvider.FIRMWARE));i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try{startActivity(Intent.createChooser(i,"Partager le firmware dans ChatGPT"));}catch(ActivityNotFoundException e){toast("Aucune application de partage disponible.");}
+        });
+        l=root;
+        text(l,"2 Â· Session de diagnostic",21);
+        start=button(l,"DÃ©marrer une session de capture",()->{
+            Runnable run=()->action(CaptureService.START);
+            if(new File(getFilesDir(),"sessions.json").exists())new AlertDialog.Builder(this).setTitle("Nouvelle session ?").setMessage("Exporter dâ€™abord la session prÃ©cÃ©dente. La nouvelle session remplace les journaux de travail ; le dernier ZIP est conservÃ© comme prÃ©cÃ©dent.").setNegativeButton("Annuler",null).setPositiveButton("DÃ©marrer",(d,w)->run.run()).show();else run.run();
+        });
+        snap=button(l,"InstantanÃ© AudioPolicy / AudioFlinger",()->action(CaptureService.SNAP));
+        rate=button(l,"AprÃ¨s raccrochage : noter rÃ©ception et microphone",this::rating);
+        stop=button(l,"Terminer et crÃ©er le ZIP",()->action(CaptureService.STOP));
+        text(l,"Attendre Â« Capture confirmÃ©e Â», appeler, raccrocher, noter le rÃ©sultat puis changer de mode. La capture reste ouverte entre les essais. Le compteur concerne les Ã©vÃ©nements filtrÃ©s.",15);
+        text(l,"3 Â· VÃ©rifier et partager",21);
+        inspect=button(l,"VÃ©rifier les fichiers du rapport",this::inspectReport);
+        share=button(l,"Partager le rapport dans ChatGPT",()->{
+            new AlertDialog.Builder(this).setTitle("Partager le rapport ?").setMessage("Le masquage est partiel. VÃ©rifier les fichiers avant partage. Choisir ChatGPT dans la feuille de partage.").setNegativeButton("Annuler",null).setPositiveButton("Partager",(d,w)->{
+                Intent i=new Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM,ReportProvider.URI);
+                i.setClipData(ClipData.newUri(getContentResolver(),"Rapport HFP",ReportProvider.URI));i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                try{startActivity(Intent.createChooser(i,"Partager le rapport dans ChatGPT"));}catch(ActivityNotFoundException e){toast("Aucune application de partage disponible.");}
+            }).show();
+        });
+        text(l,"SÃ©curitÃ© : aucune lecture PCM /proc/asound, aucun tinymix, aucune modification vendor. Une rÃ©ussite dâ€™AudioPatch nâ€™atteste pas du transport Bluetooth. En cas de route rÃ©siduelle signalÃ©e, arrÃªter les essais et exporter.",14);
+        setContentView(scroll);refresh();
+    }
+    private void controlCall(String action){final String number=action.equals("dial")?phoneNumber.getText().toString().replace(" ",""):"-";
+        if(action.equals("dial")&&!number.matches("[+]?[0-9]{1,20}")){toast("Saisir un numÃ©ro composÃ© de chiffres, avec + facultatif.");return;}
+        task(()->{
+            String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
+            if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("Ã‰tat Bluetooth pÃ©rimÃ© : attendre une rÃ©ponse rÃ©cente.");
+            if(!p.contains("version=1.7.8 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vÃ©rifier le module 1.7.8 chargÃ© aprÃ¨s redÃ©marrage.");
+            if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est dÃ©jÃ  actif.");
+            if(action.equals("dial")&&p.contains(" requested=soft_rx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D2 avant de composer.");
+            if(action.equals("dial")&&p.contains(" requested=soft_tx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D3 avant de composer.");
+            String token=Long.toHexString(System.nanoTime());
+            Root.command("setprop debug.hfpvoipfix.ctrl '"+token+":"+action+":"+number+"'",1000,5);
+            long until=System.currentTimeMillis()+6000;
+            while(System.currentTimeMillis()<until){
+                Thread.sleep(350);String reply=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
+                java.util.Map<String,String> fields=RxGate.parse(reply);
+                if(token.equals(fields.get("ctrl_token"))){String result=fields.get("ctrl_result");Root.command("setprop debug.hfpvoipfix.ctrl ''",1000,4);ui.post(()->toast("queued".equals(result)?"Commande transmise au HFP Client. VÃ©rifier lâ€™Ã©tat de lâ€™appel.":"Commande non exÃ©cutÃ©e : "+result+" Â· "+fields.get("ctrl_error")));return;}
+            }
+            throw new IOException("Commande sans accusÃ© : vÃ©rifier le Samsung avant toute nouvelle tentative.");
+        });
+    }
+    private void applyMode(){final String choice=selectedMode();
+        if(LabModes.risky(choice)&&!risk.isChecked()){toast("Autoriser explicitement les stratÃ©gies expÃ©rimentales.");return;}
         task(()->{
             String probe=LabProbe.read(this);
             if(!probe.contains("version=1.7.8 "))throw new IOException("Ancien module encore chargÃ© : redÃ©marrer une fois pour charger 1.7.8.");
