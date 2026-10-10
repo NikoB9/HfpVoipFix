@@ -38,7 +38,7 @@ final class TransportDiagnostic {
         if(!enable&&!prefs.edit().remove("previous").commit())throw new IOException("Réglage restauré ; effacement du marqueur non confirmé.");
     }
     static String inspect(){
-        StringBuilder out=new StringBuilder("HfpVoipLab 1.7.8 · transport Bluetooth\nLecture après appel ; journaux bruts jamais copiés dans le ZIP.\n");
+        StringBuilder out=new StringBuilder("HfpVoipLab 1.7.9 · transport Bluetooth\nLecture après appel ; journaux bruts jamais copiés dans le ZIP.\n");
         for(String key:new String[]{PROPERTY,"persist.bluetooth.btsnoopdefaultmode","persist.bluetooth.btsnooppath","persist.vendor.connsys.chipid","vendor.connsys.adie.chipid"}){
             try{String v=Root.command("getprop "+key,1000,4).trim();
                 // Do not publish an arbitrary configured filename from a custom ROM.

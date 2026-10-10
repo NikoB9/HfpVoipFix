@@ -45,7 +45,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.8".equals(values.get("version")))throw new IOException("Module 1.7.8 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.9".equals(values.get("version")))throw new IOException("Module 1.7.9 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -102,9 +102,12 @@ public final class RxBridgeService extends Service {
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de réception.");
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
-                boolean route=routed(record,track,inputId,output.getId(),inputType,outputType);
+                // Snapshot each route once. MIUI can return null between calls while the
+                // SCO route is being rebuilt; do not dereference a second, fresh lookup.
+                AudioDeviceInfo routedInput=record.getRoutedDevice(),routedOutput=track.getRoutedDevice();
+                boolean route=routedInput!=null&&routedOutput!=null&&(inputId<0||routedInput.getId()==inputId)&&routedInput.getType()==inputType&&routedOutput.getId()==output.getId()&&routedOutput.getType()==outputType;
                 if(confirmed&&!route)throw new IOException("Route changée : arrêt sans restitution des données.");
-                if(!confirmed){if(!tx)track.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);if(route){confirmed=true;if(inputId<0){AudioDeviceInfo routedInput=record.getRoutedDevice();inputId=routedInput.getId();event("MIC_SELECTED id="+inputId+" address="+Privacy.clean(routedInput.getAddress())+" name="+Privacy.clean(String.valueOf(routedInput.getProductName())));}event(tx?"ROUTE_CONFIRMED input=MIC output=SCO":"ROUTE_CONFIRMED input=SCO output=SPEAKER");}else if(now-opened>2500)throw new IOException(tx?"Route microphone → SCO non confirmée.":"Route SCO → haut-parleur non confirmée.");}
+                if(!confirmed){if(!tx)track.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);if(route){confirmed=true;if(inputId<0){inputId=routedInput.getId();event("MIC_SELECTED id="+inputId+" address="+Privacy.clean(routedInput.getAddress())+" name="+Privacy.clean(String.valueOf(routedInput.getProductName())));}event(tx?"ROUTE_CONFIRMED input=MIC output=SCO":"ROUTE_CONFIRMED input=SCO output=SPEAKER");}else if(now-opened>2500)throw new IOException(tx?"Route microphone → SCO non confirmée.":"Route SCO → haut-parleur non confirmée.");}
                 int n=record.read(samples,0,samples.length,AudioRecord.READ_NON_BLOCKING);if(n<0)throw new IOException("AudioRecord.read="+n);
                 if(n>0){lastData=now;read+=n;
                     if(!confirmed||!allowed()||!routed(record,track,input.getId(),output.getId(),inputType,outputType)){dropped+=n;Arrays.fill(samples,(short)0);continue;}

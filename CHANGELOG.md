@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.9-lab
+
+- Fixed a race where MIUI could return a null routed microphone between two route lookups, crashing the D3 bridge before it could confirm the route.
+- D3 now evaluates one input/output route snapshot per check and safely waits for a later snapshot when a device is temporarily unavailable.
+- Bumped package version to `versionCode 44`.
+
 ## 1.7.8-lab
 
 - D3 now lets Android select its default built-in microphone instead of rejecting phones that expose multiple microphones of the same type.
