@@ -223,7 +223,7 @@ public final class ModeActivity extends Activity {
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if(requestCode==160&&pendingCapture){pendingCapture=false;if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)action(CaptureService.START);else toast("La permission microphone est nécessaire au pont audio.");}
     }
-    private final Runnable poll=new Runnable(){public void run(){refresh();if(visible)ui.postDelayed(this,1000);}};
+    private final Runnable poll=new Runnable(){public void run(){showMode();if(visible)ui.postDelayed(this,1000);}};
     @Override protected void onSaveInstanceState(Bundle out){out.putString("number",phoneNumber.getText().toString());super.onSaveInstanceState(out);}
     @Override protected void onResume(){super.onResume();visible=true;poll.run();}
     @Override protected void onPause(){visible=false;ui.removeCallbacks(poll);super.onPause();}
