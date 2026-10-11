@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.13-lab
+
+- D4 now requests `VOICE_COMMUNICATION` for the Redmi microphone input. The provided MIUI audio policy exposes a separate `voip_tx` input profile, while the D4 RX and the previous D4 mic source both used `primary input` (single active stream). This is a targeted experiment; it is not yet confirmed to select `voip_tx` or to carry audio on the device.
+- D4 logs the requested source in `OPEN` and the active recording source/silencing state in `INPUT_CONFIG`; Android/MediaTek input selection and actual two-way audio still need device validation.
+- Bumped package version to `versionCode 48`.
+
 ## 1.7.12-lab
 
 - D2/D3/D4 arming now requires a fresh Bluetooth status confirming the matching requested mode, idle call state, current module version, and required hooks. A stale 1.7.10 module or an unapplied D4 mode is rejected before the bridge service starts, with a visible instruction.

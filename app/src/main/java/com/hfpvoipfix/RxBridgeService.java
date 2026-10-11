@@ -7,7 +7,7 @@ import android.util.Log;
 import java.io.*;
 import java.util.*;
 
-/** Experimental one-way SCO bridge, explicitly armed per call; never stores PCM. */
+/** Experimental SCO bridge, explicitly armed per call; never stores PCM. */
 public final class RxBridgeService extends Service {
     public static volatile boolean alive;
     private volatile boolean stop, permitted;
@@ -46,7 +46,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.12".equals(values.get("version")))throw new IOException("Module 1.7.12 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.13".equals(values.get("version")))throw new IOException("Module 1.7.13 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -151,7 +151,10 @@ public final class RxBridgeService extends Service {
         AudioRecord rxRecord=null,txRecord=null;AudioTrack rxTrack=null,txTrack=null;
         try{
             rxRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
-            txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.MIC).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
+            // MIUI exposes a separate voip_tx input profile. Request the
+            // communication source to test whether its HAL selects that
+            // profile while the SCO RX stream remains active.
+            txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
             rxTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             txTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||txRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED||txTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation d’un flux audio duplex refusée.");
@@ -161,7 +164,7 @@ public final class RxBridgeService extends Service {
             long opened=SystemClock.elapsedRealtime(),lastStats=opened,lastRxData=opened,lastTxData=opened;
             long rxRead=0,rxWritten=0,rxDropped=0,rxNonzero=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txDropped=0,txNonzero=0,txEnergy=0,txWindow=0;
             int rxPeak=0,txPeak=0,txInputId=-1;boolean rxConfirmed=false,txConfirmed=false;
-            event("OPEN direction=duplex rate="+rate+" rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_input_id=system_default tx_output_id="+scoOut.getId()+" no_audio_saved");
+            event("OPEN direction=duplex rate="+rate+" rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_source=VOICE_COMMUNICATION tx_input_id=system_default tx_output_id="+scoOut.getId()+" no_audio_saved");
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de duplex.");
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
@@ -184,6 +187,8 @@ public final class RxBridgeService extends Service {
                     int done=txTrack.write(txSamples,0,nt,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack TX.write="+done);txWritten+=done;txDropped+=nt-done;
                 }else txDropped+=nt;Arrays.fill(txSamples,(short)0);}
                 if(now-lastStats>=1000){AudioRecordingConfiguration txConfig=txRecord.getActiveRecordingConfiguration(),rxConfig=rxRecord.getActiveRecordingConfiguration();if(txConfig!=null&&txConfig.isClientSilenced())throw new IOException("Capture micro rendue silencieuse par Android.");if(rxConfig!=null&&rxConfig.isClientSilenced())throw new IOException("Capture SCO rendue silencieuse par Android.");
+                    event("INPUT_CONFIG direction=rx client_source="+(rxConfig==null?-1:rxConfig.getClientAudioSource())+" silenced="+(rxConfig!=null&&rxConfig.isClientSilenced())+" routed_id="+(ri==null?-1:ri.getId()));
+                    event("INPUT_CONFIG direction=tx client_source="+(txConfig==null?-1:txConfig.getClientAudioSource())+" silenced="+(txConfig!=null&&txConfig.isClientSilenced())+" routed_id="+(ti==null?-1:ti.getId()));
                     long rxRms=rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow),txRms=txWindow==0?0:(long)Math.sqrt((double)txEnergy/txWindow);
                     event("STATS direction=rx samples_read="+rxRead+" samples_written="+rxWritten+" samples_dropped="+rxDropped+" nonzero="+rxNonzero+" rms="+rxRms+" peak="+rxPeak+" route="+rxConfirmed+" underruns="+rxTrack.getUnderrunCount());
                     event("STATS direction=tx samples_read="+txRead+" samples_written="+txWritten+" samples_dropped="+txDropped+" nonzero="+txNonzero+" rms="+txRms+" peak="+txPeak+" route="+txConfirmed+" underruns="+txTrack.getUnderrunCount());
