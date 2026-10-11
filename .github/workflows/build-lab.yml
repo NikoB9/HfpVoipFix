@@ -32,6 +32,10 @@ jobs:
           java -cp build-tests com.hfpvoipfix.HciMetadataTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/LabModes.java app/src/main/java/com/hfpvoipfix/RxGate.java tests/RxGateTest.java
           java -cp build-tests com.hfpvoipfix/RxGateTest
+          javac -encoding UTF-8 -cp build-tests -d build-tests app/src/main/java/com/hfpvoipfix/AutoBridgeGate.java tests/AutoBridgeGateTest.java
+          java -cp build-tests com.hfpvoipfix.AutoBridgeGateTest
+          javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/Privacy.java app/src/main/java/com/hfpvoipfix/BridgeJournal.java tests/BridgeJournalTest.java
+          java -cp build-tests com.hfpvoipfix.BridgeJournalTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/ProbeChannel.java tests/ProbeChannelTest.java
           java -cp build-tests com.hfpvoipfix.ProbeChannelTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/CallCommand.java tests/CallCommandTest.java
