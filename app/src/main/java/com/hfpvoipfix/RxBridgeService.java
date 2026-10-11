@@ -46,7 +46,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.14".equals(values.get("version")))throw new IOException("Module 1.7.14 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.15".equals(values.get("version")))throw new IOException("Module 1.7.15 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -155,7 +155,10 @@ public final class RxBridgeService extends Service {
             // communication source to test whether its HAL selects that
             // profile while the SCO RX stream remains active.
             txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
-            rxTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
+            // D4 carries call receive audio. Keep it on the phone-call volume
+            // group so MIUI does not attenuate it with the independent media
+            // slider, which was at index 3/15 during the silent RX report.
+            rxTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             txTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||txRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED||txTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation d’un flux audio duplex refusée.");
             if(!rxRecord.setPreferredDevice(scoIn)||!txRecord.setPreferredDevice(mic)||!rxTrack.setPreferredDevice(speaker)||!txTrack.setPreferredDevice(scoOut))throw new IOException("Routage d’un flux audio duplex refusé.");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.15-lab
+
+- D4 receive playback now uses Android's voice-communication volume group while retaining the explicit speaker route. The report showed the media stream at volume index 3/15 and the active RX track attenuated by 48 dB, matching the silent speaker report.
+- Bumped package version to `versionCode 50`.
+
 ## 1.7.14-lab
 
 - D4 test now stabilizes SCO and speaker outputs before starting either input capture.
