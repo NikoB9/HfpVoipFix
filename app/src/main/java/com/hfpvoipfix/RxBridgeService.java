@@ -48,7 +48,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.8.1".equals(values.get("version")))throw new IOException("Module 1.8.1 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.8.2".equals(values.get("version")))throw new IOException("Module 1.8.2 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -141,7 +141,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.8.1")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.8.2")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -150,6 +150,8 @@ public final class RxBridgeService extends Service {
         while(!stop&&!allowed())Thread.sleep(40);if(stop)return;
         audioIdentity=RxGate.identity(probe);
         int rate=Integer.parseInt(RxGate.parse(probe).get("rate"));AudioManager am=(AudioManager)getSystemService(AUDIO_SERVICE);
+        boolean telecomBridge=LabModes.telecom(RxGate.parse(probe).get("requested"));
+        if(telecomBridge){long until=SystemClock.elapsedRealtime()+5000;while(allowed()&&am.getMode()!=AudioManager.MODE_NORMAL&&SystemClock.elapsedRealtime()<until)Thread.sleep(50);if(!allowed())return;if(am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : mode audio normal non confirmé. Activer Telecom dans la portée LSPosed puis redémarrer.");event("TELECOM_AUDIO_CONFIRMED mode=0");}
         if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Appel téléphonique local actif : essai refusé.");
         AudioDeviceInfo scoIn=unique(am,AudioManager.GET_DEVICES_INPUTS,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
         AudioDeviceInfo speaker=unique(am,AudioManager.GET_DEVICES_OUTPUTS,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
@@ -176,6 +178,7 @@ public final class RxBridgeService extends Service {
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
+                if(telecomBridge&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : Telecom a repris un mode audio incompatible avec le pont.");
                 int nextPhase=DuplexSchedule.next(phase,now-phaseStart,progressive);
                 if(nextPhase!=phase){
                     event("PHASE_END phase="+phase+" elapsed_ms="+(phase==0?0:now-phaseStart)+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" tx_read="+txRead+" tx_written="+txWritten);

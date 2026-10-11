@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hfpvoipfix"
-    android:versionCode="59"
-    android:versionName="1.8.1-lab">
+    android:versionCode="60"
+    android:versionName="1.8.2-lab">
 
     <uses-sdk
         android:minSdkVersion="30"
@@ -35,6 +35,6 @@
         <!-- LSPosed legacy-module recommended scope. -->
         <meta-data
             android:name="xposedscope"
-            android:value="com.android.bluetooth" />
+            android:resource="@array/xposed_scope" />
     </application>
 </manifest>
