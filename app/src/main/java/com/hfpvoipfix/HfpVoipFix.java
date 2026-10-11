@@ -64,7 +64,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         if(LabModes.voip(selected)&&voipHooks!=3){event("UNAVAILABLE mode="+selected+" reason=voip_hooks_missing");selected="observe";}
     }}
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p){
-        if("com.android.server.telecom".equals(p.packageName)){TelecomAudioHook.install(p.classLoader);return;}
+        if(TelecomLoaderHook.accepts(p.packageName)){TelecomLoaderHook.load(p.packageName,p.classLoader);return;}
         if(!"com.android.bluetooth".equals(p.packageName)||installed)return;
         installed=true;
         ClassLoader cl=p.classLoader;
@@ -141,7 +141,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("getHeadsetClientService");service.getDeclaredMethod("getConnectedDevices");
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
-        event("HOOKS version=1.8.2 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.8.3 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -150,7 +150,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.8.2 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.8.3 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
                 " sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+

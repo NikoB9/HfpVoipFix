@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><string-array name="xposed_scope"><item>com.android.bluetooth</item><item>com.android.server.telecom</item></string-array></resources>
+<resources><string-array name="xposed_scope"><item>com.android.bluetooth</item><item>com.android.server.telecom</item><item>android</item><item>system</item></string-array></resources>
