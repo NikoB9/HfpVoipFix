@@ -23,12 +23,12 @@ if [[ -n "${LAB_KEYSTORE:-}" ]]; then
   : "${LAB_KEYSTORE_PASSWORD:?Signing password required}"
   mkdir -p "$OUT/signer"
   javac -encoding UTF-8 -Xlint:deprecation -cp "$ANDROID_BUILD_TOOLS/lib/apksigner.jar" -d "$OUT/signer" tools/SignApk.java
-  "$JAVA_HOME/bin/java" -cp "$OUT/signer:$ANDROID_BUILD_TOOLS/lib/apksigner.jar" SignApk "$OUT/aligned.apk" "$OUT/HfpVoipLab-1.7.10.apk"
-  "$JAVA_HOME/bin/java" -jar "$ANDROID_BUILD_TOOLS/lib/apksigner.jar" verify --verbose --print-certs "$OUT/HfpVoipLab-1.7.10.apk" > "$OUT/signature.txt"
-  "$ANDROID_BUILD_TOOLS/zipalign" -c -v 4 "$OUT/HfpVoipLab-1.7.10.apk" > "$OUT/alignment.txt"
-  "$ANDROID_BUILD_TOOLS/aapt2" dump badging "$OUT/HfpVoipLab-1.7.10.apk" > "$OUT/manifest.txt"
+  "$JAVA_HOME/bin/java" -cp "$OUT/signer:$ANDROID_BUILD_TOOLS/lib/apksigner.jar" SignApk "$OUT/aligned.apk" "$OUT/HfpVoipLab-1.7.11.apk"
+  "$JAVA_HOME/bin/java" -jar "$ANDROID_BUILD_TOOLS/lib/apksigner.jar" verify --verbose --print-certs "$OUT/HfpVoipLab-1.7.11.apk" > "$OUT/signature.txt"
+  "$ANDROID_BUILD_TOOLS/zipalign" -c -v 4 "$OUT/HfpVoipLab-1.7.11.apk" > "$OUT/alignment.txt"
+  "$ANDROID_BUILD_TOOLS/aapt2" dump badging "$OUT/HfpVoipLab-1.7.11.apk" > "$OUT/manifest.txt"
   test -s "$OUT/signature.txt"
-  sha256sum "$OUT/HfpVoipLab-1.7.10.apk"
+  sha256sum "$OUT/HfpVoipLab-1.7.11.apk"
 else
   echo 'Unsigned build only: stable signing key is required for an installable release.'
 fi

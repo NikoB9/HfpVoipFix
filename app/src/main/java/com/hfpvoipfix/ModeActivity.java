@@ -20,8 +20,8 @@ public final class ModeActivity extends Activity {
     private CheckBox risk;
     private boolean visible,working;
     private String requested="non vérifié";
-    private static final String[] PRIMARY_IDS={"observe","soft_rx","soft_tx"};
-    private static final String[] PRIMARY_NAMES={"0 · Téléphone Android","D2 · Réception validée","D3 · Essai micro"};
+    private static final String[] PRIMARY_IDS={"observe","soft_rx","soft_tx","soft_duplex"};
+    private static final String[] PRIMARY_NAMES={"0 · Téléphone Android","D2 · Réception validée","D3 · Essai micro","D4 · Duplex RX + micro"};
     private static final String[] ADVANCED_IDS={"","voip","wbs","endpoints","bypass","bypass_comm","codec","rx","tx","bridge"};
     private static final String[] RESULTS={"Non évalué","Silence","Bip continu","Retour microphone","Voix reçue mais déformée","Voix claire","Son uniquement au début ou à la fin","Autre"};
     private android.content.SharedPreferences prefs(){return getSharedPreferences("capture",0);}
@@ -38,7 +38,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HfpVoipLab 1.7.10",27);text(l,"D2 réception validée · D3 essai micro · un rapport",16);
+        text(l,"HfpVoipLab 1.7.11",27);text(l,"D2 réception · D3 micro · D4 duplex expérimental",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -47,18 +47,18 @@ public final class ModeActivity extends Activity {
         button(l,"Appeler depuis le Redmi",()->controlCall("dial"));
         button(l,"Répondre à l’appel du Samsung",()->controlCall("answer"));
         button(l,"Raccrocher l’appel du Samsung",()->controlCall("hangup"));
-        text(l,"Les boutons pilotent le Samsung via HFP. Le mode 0 laisse l’application Téléphone Android gérer l’appel ; D2/D3 utilisent le pont de test.",14);
+        text(l,"Les boutons pilotent le Samsung via HFP. Le mode 0 laisse l’application Téléphone Android gérer l’appel ; D2/D3/D4 utilisent le pont de test.",14);
         text(l,"Choisir un parcours",21);
         modes=new Spinner(this);modes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,PRIMARY_NAMES));modes.setSelection(1);l.addView(modes);
         details=new TextView(this);details.setTextSize(16);l.addView(details);
         modes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(advancedModes!=null&&advancedModes.getSelectedItemPosition()!=0)advancedModes.setSelection(0);showMode();}});
         risk=new CheckBox(this);risk.setText("Autoriser les stratégies expérimentales pour cette ouverture");risk.setChecked(false);risk.setOnCheckedChangeListener((b1,x)->refresh());l.addView(risk);
         apply=button(l,"Appliquer au prochain appel",this::applyMode);
-        text(l,"Parcours : choisir D2 (écouter sur le Redmi) ou D3 (envoyer le micro du Redmi au correspondant), appliquer hors appel, démarrer la capture, puis armer avant d’appeler. D3 est un essai TX seul : il n’enregistre rien et la notification permet l’arrêt immédiat. Le correspondant doit confirmer le micro. Le routage natif Android reste inchangé hors appel.",15);
-        text(l,"Pont audio · une direction par appel",21);
+        text(l,"Parcours : choisir D2, D3 ou D4, appliquer hors appel, démarrer la capture, puis armer avant d’appeler. D4 teste simultanément l’écoute sur le Redmi et son micro vers le correspondant. Le pont n’enregistre pas le son et sa notification permet l’arrêt immédiat. Confirmer les deux sens auprès du correspondant.",15);
+        text(l,"Pont audio · D2, D3 ou duplex expérimental",21);
         rxStatus=new TextView(this);l.addView(rxStatus);
         rxArm=button(l,"Armer le mode choisi pour le prochain appel",()->{
-            if(!LabModes.softwareBridge(selectedMode())){toast("L’armement audio sert seulement aux modes D2 et D3.");return;}
+            if(!LabModes.softwareBridge(selectedMode())){toast("L’armement audio sert aux modes D2, D3 et D4.");return;}
             if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},160);toast("Autoriser la permission microphone puis appuyer de nouveau sur Armer.");return;}
             if(!risk.isChecked()){toast("Cocher l’autorisation des stratégies expérimentales.");return;}
             startForegroundService(new Intent(this,RxBridgeService.class).putExtra("mode",selectedMode()));
@@ -74,7 +74,7 @@ public final class ModeActivity extends Activity {
         advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){showMode();}});
         text(l,"Transport SCO · diagnostic natif",21);
         transportStatus=new TextView(this);l.addView(transportStatus);
-        text(l,"Module Bluetooth attendu : 1.7.10. D2/D3 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. Pour D3, parler normalement pendant l’appel et demander au correspondant si la voix est claire. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
+        text(l,"Module Bluetooth attendu : 1.7.11. D2/D3/D4 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. En D4, vérifier que tu entends le correspondant et qu’il t’entend. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
         button(l,"1 · Préparer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
             .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le téléphone pendant cet essai. Le lab ne partage que des métadonnées techniques : pas de contenu ACL, numéro, adresse, clé ou son. Le réglage précédent sera sauvegardé. Désactiver/réactiver Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairé. MIUI peut ignorer ce réglage AOSP.")
             .setNegativeButton("Annuler",null).setPositiveButton("Préparer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandée. Désactiver puis réactiver Bluetooth dans ses réglages, attendre la reconnexion du Samsung, puis effectuer l’essai."));})).show());
@@ -120,10 +120,11 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.7.10 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.10 chargé après redémarrage.");
+            if(!p.contains("version=1.7.11 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.11 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&p.contains(" requested=soft_rx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D2 avant de composer.");
             if(action.equals("dial")&&p.contains(" requested=soft_tx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D3 avant de composer.");
+            if(action.equals("dial")&&p.contains(" requested=soft_duplex ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D4 avant de composer.");
             String token=Long.toHexString(System.nanoTime());
             Root.command("setprop debug.hfpvoipfix.ctrl '"+token+":"+action+":"+number+"'",1000,5);
             long until=System.currentTimeMillis()+6000;
@@ -139,7 +140,7 @@ public final class ModeActivity extends Activity {
         if(LabModes.risky(choice)&&!risk.isChecked()){toast("Autoriser explicitement les stratégies expérimentales.");return;}
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.7.10 "))throw new IOException("Ancien module encore chargé : redémarrer une fois pour charger 1.7.10.");
+            if(!probe.contains("version=1.7.11 "))throw new IOException("Ancien module encore chargé : redémarrer une fois pour charger 1.7.11.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");

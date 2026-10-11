@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.11-lab
+
+- Added D4 experimental full duplex: simultaneous SCO playback to the Redmi speaker and Redmi microphone transmission to SCO. Both routes must be confirmed before either stream is forwarded; either route change stops the bridge. PCM is not saved.
+- D4 requires the same explicit per-call arm and foreground notification as D2/D3 for this validation build.
+- Bumped package version to `versionCode 46`.
+
+
 ## 1.7.10-lab
 
 - Fixed a D3 crash after the microphone and SCO route were confirmed: the bridge used `input.getId()` even though D3 intentionally lets Android select the default microphone (`input` is null). It now checks the already confirmed `inputId`.
