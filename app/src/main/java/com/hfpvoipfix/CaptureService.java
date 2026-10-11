@@ -114,7 +114,7 @@ public final class CaptureService extends Service {
                         SessionStore.note(this,safe);
                     }
                     if(line.contains("ERROR")||line.contains("UNAVAILABLE")||line.contains("result=unavailable"))fail(safe);
-                    if((line.contains("SCO_BEGIN")&&System.currentTimeMillis()-lastSnapshot>3000)||line.contains("COMM_REQUEST")||line.contains("COMM_RELEASE")||line.contains("SOFT_BRIDGE ROUTE_CONFIRMED")||line.contains("SOFT_BRIDGE ERROR")){lastSnapshot=System.currentTimeMillis();work.execute(()->{if(capturing)snapshot("SCO début");});}
+                    if((line.contains("SCO_BEGIN")&&System.currentTimeMillis()-lastSnapshot>3000)||line.contains("COMM_REQUEST")||line.contains("COMM_RELEASE")||line.contains("SOFT_BRIDGE ROUTE_CONFIRMED")||line.contains("SOFT_BRIDGE ERROR")||line.contains("SOFT_BRIDGE PHASE_BEGIN")){lastSnapshot=System.currentTimeMillis();work.execute(()->{if(capturing)snapshot(line.contains("SOFT_BRIDGE PHASE_BEGIN")?"D4 "+safe:"SCO début");});}
                 }
                 if(System.currentTimeMillis()-lastFlush>1000){out.flush();lastFlush=System.currentTimeMillis();
                     if(firstWrite.getCount()==0&&!stopping)state("running","Capture : "+count+" événements"+(dropped>0?" · saturation : milieu tronqué":""));}
