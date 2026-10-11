@@ -1,7 +1,7 @@
 name: Build HfpVoipLab
 on:
   push:
-    branches: [main, codex/1.7.22]
+    branches: [main, codex/1.8.0]
     paths: ['app/**', 'tools/**', 'tests/**', '.github/workflows/build-lab.yml']
   workflow_dispatch:
 permissions:
@@ -24,6 +24,8 @@ jobs:
         run: |
           python3 tests/hook_safety_test.py
           mkdir -p build-tests
+          javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/DuplexSchedule.java tests/DuplexScheduleTest.java
+          java -cp build-tests com.hfpvoipfix.DuplexScheduleTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/ReportArchive.java tests/ReportArchiveTest.java
           java -cp build-tests com.hfpvoipfix.ReportArchiveTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/FirmwareArchive.java tests/FirmwareArchiveTest.java
@@ -64,17 +66,17 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.22.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.8.0.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.7.22-signed
+          name: HfpVoipLab-1.8.0-signed
           path: |
-            build-lab/HfpVoipLab-1.7.22.apk
+            build-lab/HfpVoipLab-1.8.0.apk
             build-lab/signature.txt
             build-lab/manifest.txt
             build-lab/alignment.txt
             build-signing-note.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.22.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.8.0.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'

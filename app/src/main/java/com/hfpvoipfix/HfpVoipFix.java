@@ -22,6 +22,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static final Map<Object,Integer> callIds=new HashMap<>();
     private static int nextCallId=1;
     private static final Map<Object,Object> callMachines=new HashMap<>();
+    private static boolean telecomConfirmed;
     private static boolean disconnectHook, bypassConfirmed, commAttempted, commRequested, commCleanupUnconfirmed;
     private static AudioManager commAudio;
     private static Object pendingCommMachine;
@@ -129,7 +130,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                     }}
                     @Override protected void afterHookedMethod(MethodHookParam p){synchronized(LOCK){
                         if(p.hasThrowable()||p.getResult()==null||!LabModes.voip(selected))return;
-                        try{XposedHelpers.callMethod(p.getResult(),"setAudioModeIsVoip",true);event("VOIP_APPLIED mode="+selected);strategy(selected.equals("voip")?"applied":"partial","voip_connection_flag_set");}
+                        try{XposedHelpers.callMethod(p.getResult(),"setAudioModeIsVoip",true);event("VOIP_APPLIED mode="+selected);if(LabModes.telecom(selected)&&p.getResult() instanceof Connection&&((Connection)p.getResult()).getState()!=Connection.STATE_DISCONNECTED){telecomConfirmed=true;event("TELECOM_CONNECTION_CONFIRMED mode="+selected);}strategy(selected.equals("voip")?"applied":"partial","voip_connection_flag_set");}
                         catch(Throwable t){error("early_voip",t);}
                     }}
                 });voipHooks++;
@@ -139,7 +140,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("getHeadsetClientService");service.getDeclaredMethod("getConnectedDevices");
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
-        event("HOOKS version=1.7.22 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.8.0 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -148,10 +149,10 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.7.22 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.8.0 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
-                " sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" soft_ports="+softwarePorts+
+                " sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
                 " outcome="+outcome+" disconnect="+disconnectHook+" comm="+commRequested+" busy="+busy()+" dirty="+((owner!=null&&!scos.contains(owner))||(commRequested&&!busy())||commCleanupUnconfirmed)+" route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks+" error="+lastError);}
         }},500,500);
     }
@@ -205,7 +206,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             if(actual!=AudioManager.MODE_IN_COMMUNICATION)strategy("unavailable","communication_mode_lost");
         }}catch(Throwable t){error("communication_monitor",t);}
     }
-    private static void finishCommunicationIfIdle(){if(!busy()){pendingCommMachine=null;releaseCommunication();}}
+    private static void finishCommunicationIfIdle(){if(!busy()){telecomConfirmed=false;pendingCommMachine=null;releaseCommunication();}}
     private static void releaseCommunication(){
         if(!commRequested||commAudio==null)return;
         try{
@@ -319,7 +320,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                             if(!mtkModePending){softwarePorts=false;strategy("unavailable","mtk_wbs_not_pending");}
                             else{
                                 String direction;
-                                if(selected.equals("soft_duplex")){addedIn=connectPort(IN_SCO);addedOut=connectPort(OUT_SCO);direction="duplex";}
+                                if(LabModes.duplex(selected)){addedIn=connectPort(IN_SCO);addedOut=connectPort(OUT_SCO);direction="duplex";}
                                 else if(selected.equals("soft_tx")){addedOut=connectPort(OUT_SCO);direction="tx";}
                                 else{addedIn=connectPort(IN_SCO);direction="rx";}
                                 boolean inputReady=!selected.equals("soft_tx")&&status(XposedHelpers.callStaticMethod(audio(),"getDeviceConnectionState",IN_SCO,address))!=0;

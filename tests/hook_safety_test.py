@@ -9,7 +9,7 @@ SOURCES={
 'android/os/SystemClock.java': 'package android.os; public class SystemClock {public static long elapsedRealtime(){return 42;}}',
 'android/os/SystemProperties.java': '''package android.os; public class SystemProperties {public static String mode="observe";public static String get(String k,String d){return k.endsWith(".mode")?mode:d;}}''',
 'android/telecom/DisconnectCause.java': 'package android.telecom; public class DisconnectCause {public static final int CANCELED=4;public DisconnectCause(int x){}}',
-'android/telecom/Connection.java': '''package android.telecom; public class Connection {public boolean voip;public static Connection createFailedConnection(DisconnectCause c){return new Connection();}public void setAudioModeIsVoip(boolean b){voip=b;}}''',
+'android/telecom/Connection.java': '''package android.telecom; public class Connection {public boolean voip;public static final int STATE_DISCONNECTED=6;public int getState(){return 4;}public static Connection createFailedConnection(DisconnectCause c){return new Connection();}public void setAudioModeIsVoip(boolean b){voip=b;}}''',
 'android/telecom/PhoneAccountHandle.java': 'package android.telecom; public class PhoneAccountHandle {}',
 'android/telecom/ConnectionRequest.java': 'package android.telecom; public class ConnectionRequest {}',
 'android/bluetooth/BluetoothDevice.java': 'package android.bluetooth;public class BluetoothDevice {}',
@@ -39,6 +39,9 @@ public class HookSafetyTest {
   if(args.length>0)XposedHelpers.missing=args[0].equals("disconnect")?"broadcastConnectionState":"sendCallChangedIntent";
   XC_LoadPackage.LoadPackageParam p=new XC_LoadPackage.LoadPackageParam();p.packageName="com.android.bluetooth";p.classLoader=HookSafetyTest.class.getClassLoader();new HfpVoipFix().handleLoadPackage(p);
   if(args.length>0){SystemProperties.mode=args[0].equals("disconnect")?"bypass_comm":"bridge";route(true);check(AudioSystem.ports.isEmpty()&&AudioManager.created.isEmpty()&&AudioManager.modeSets==0,"Missing lifecycle must fail closed");System.out.println("PASS missing lifecycle fail closed");return;}
+  begin("telecom_duplex");android.telecom.Connection d5=new android.telecom.Connection();
+  check(!invoke("onCreateOutgoingConnection",null,d5,null,null).returned,"D5 preserves native Telecom outgoing connection");check(d5.voip,"D5 marks native connection as VoIP");
+  check(!invoke("handleCall",new HfpClientDeviceBlock(),null,call).returned,"D5 preserves native HFP call registration");route(true);check(AudioSystem.ports.contains(0x80000008)&&AudioSystem.ports.contains(0x20),"D5 exposes duplex SCO ports");end();AudioSystem.writes=0;
   begin("voip");android.telecom.Connection c=new android.telecom.Connection();invoke("onCreateIncomingConnection",null,c,null,null);route(true);check(c.voip,"Early VoIP");check(AudioSystem.writes==0&&AudioSystem.ports.isEmpty(),"A must not touch codec/ports");end();
   begin("wbs");route(true);check(AudioSystem.wbs.equals("bt_wbs=on"),"B WBS applied");end();check(AudioSystem.wbs.equals("bt_wbs=off"),"WBS restored");
   sm.mAudioWbs=false;int writes=AudioSystem.writes;begin("wbs");route(true);check(AudioSystem.writes==writes,"B cannot force WBS after narrow negotiation");end();
