@@ -46,8 +46,8 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.18".equals(values.get("version")))throw new IOException("Module 1.7.18 non chargé : redémarrage LSPosed nécessaire.");
-            if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
+            if(!"1.7.19".equals(values.get("version")))throw new IOException("Module 1.7.19 non chargé : redémarrage LSPosed nécessaire.");
+            if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2, D3 ou D4.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
                 else if("true".equals(values.get("busy"))&&!mode.equals(values.get("applied")))throw new IOException("L'appel n'utilise pas le mode armé.");
@@ -132,10 +132,17 @@ public final class RxBridgeService extends Service {
             stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();
         }
     }
+    private void phaseNotice(int phase,String label,int remaining){
+        String message="D4 · phase "+phase+"/4 · "+label+" · "+remaining+" s";
+        status(message);
+        PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · test progressif 1.7.19")
+            .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
+            .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
+    }
     private void runDuplexBridge()throws Exception{
-        if(!CaptureService.alive||!getSharedPreferences("capture",0).getString("phase","").equals("running"))throw new IOException("Démarrer la capture avant d’armer le pont.");
-        if(!LabModes.valid(Root.command("getprop "+LabModes.PROP,1000,4).trim()).equals("soft_duplex"))throw new IOException("Le mode D4 n’est plus sélectionné.");
-        status("Vérification hors appel… attendre « D4 duplex armé ».");event("ARM_REQUEST direction=duplex no_audio_saved");
+        status("Vérification hors appel… attendre « D4 duplex armé ».");event("ARM_REQUEST direction=duplex sequence=progressive no_audio_saved");
         watch=new Thread(this::watch,"hfp-sco-handshake");watch.start();
         while(!stop&&!allowed())Thread.sleep(40);if(stop)return;
         int rate=Integer.parseInt(RxGate.parse(probe).get("rate"));AudioManager am=(AudioManager)getSystemService(AUDIO_SERVICE);
@@ -150,76 +157,84 @@ public final class RxBridgeService extends Service {
         AudioFormat outFormat=new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build();
         AudioRecord rxRecord=null,txRecord=null;AudioTrack rxTrack=null,txTrack=null;
         try{
+            // Phase 1 opens only the same capture/playback paths as standalone D2.
             rxRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
-            // MIUI exposes a separate voip_tx input profile. Request the
-            // communication source to test whether its HAL selects that
-            // profile while the SCO RX stream remains active.
-            txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
-            // On MIUI, a VOICE_COMMUNICATION RX track is rerouted to SCO while
-            // the separate TX track is active. MEDIA preserves the confirmed
-            // speaker route; its volume is controlled by STREAM_MUSIC.
             rxTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
-            txTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
-            if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||txRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED||txTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation d’un flux audio duplex refusée.");
-            if(!rxRecord.setPreferredDevice(scoIn)||!txRecord.setPreferredDevice(mic)||!rxTrack.setPreferredDevice(speaker)||!txTrack.setPreferredDevice(scoOut))throw new IOException("Routage d’un flux audio duplex refusé.");
-            rxTrack.setVolume(0.35f);txTrack.setVolume(0.8f);
+            if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation RX refusée.");
+            if(!rxRecord.setPreferredDevice(scoIn)||!rxTrack.setPreferredDevice(speaker))throw new IOException("Routage RX refusé.");
+            rxTrack.setVolume(0.35f);rxRecord.startRecording();rxTrack.play();
             event("PLAYBACK_VOLUME rx=MEDIA index="+am.getStreamVolume(AudioManager.STREAM_MUSIC)+" max="+am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
-            // Start capture before activating the SCO playback track. On this
-            // MIUI policy, waiting for both outputs first can reroute RX to
-            // SCO before the input paths are open. Keep the known working D4
-            // startup order and verify both routes continuously below.
-            rxRecord.startRecording();txRecord.startRecording();rxTrack.play();txTrack.play();
-            short[] rxSamples=new short[rate/50],txSamples=new short[rate/50];
-            long opened=SystemClock.elapsedRealtime(),lastStats=opened,lastRxData=opened,lastTxData=opened,routeUnstableSince=opened,lastRouteRetry=0;
-            long rxRead=0,rxWritten=0,rxDropped=0,rxNonzero=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txDropped=0,txNonzero=0,txEnergy=0,txWindow=0;
-            int rxPeak=0,txPeak=0,txInputId=-1;boolean rxConfirmed=false,txConfirmed=false,routeLossReported=false;
-            event("OPEN direction=duplex rate="+rate+" startup=inputs_before_outputs rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_source=VOICE_COMMUNICATION tx_input_id="+mic.getId()+" tx_output_id="+scoOut.getId()+" no_audio_saved");
+            short[] rxSamples=new short[rate/50],txSamples=new short[rate/50],silence=new short[rate/50];
+            String[] labels={"","Réception seule","Réception + capture micro","Duplex complet","TX arrêté, micro maintenu"};
+            int phase=0;long phaseStart=0,lastStats=0,lastRxData=SystemClock.elapsedRealtime(),lastTxData=lastRxData;
+            long rxRead=0,rxWritten=0,rxDropped=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txEnergy=0,txWindow=0;
+            int rxPeak=0,txPeak=0;String lastRoutes="";
             while(allowed()){
-                long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de duplex.");
+                long now=SystemClock.elapsedRealtime();
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
-                AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord.getRoutedDevice(),to=txTrack.getRoutedDevice();
-                boolean rxRoute=ri!=null&&ro!=null&&ri.getId()==scoIn.getId()&&ri.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO&&ro.getId()==speaker.getId()&&ro.getType()==AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
-                boolean txRoute=ti!=null&&to!=null&&(txInputId<0||ti.getId()==txInputId)&&ti.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC&&to.getId()==scoOut.getId()&&to.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
-                if(!rxRoute)rxConfirmed=false;
-                if(!txRoute)txConfirmed=false;
-                if(!rxRoute||!txRoute){
-                    if(!routeLossReported){routeLossReported=true;routeUnstableSince=now;event("ROUTE_LOST rx="+rxRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId()));}
-                    if(now-lastRouteRetry>=300){boolean rxPreferred=rxTrack.setPreferredDevice(speaker),txPreferred=txTrack.setPreferredDevice(scoOut);event("ROUTE_RETRY rx_speaker="+rxPreferred+" tx_sco="+txPreferred);lastRouteRetry=now;}
-                    if(now-routeUnstableSince>3000)throw new IOException("Routes D4 RX/micro instables depuis 3 s ; duplex arrêté sans transmettre sur une route incorrecte.");
-                }else{
-                    if(routeLossReported)event("ROUTE_RECOVERED duration_ms="+(now-routeUnstableSince));
-                    routeLossReported=false;routeUnstableSince=0;lastRouteRetry=0;
+                if(phase==0||now-phaseStart>=15000){
+                    event("PHASE_END phase="+phase+" elapsed_ms="+(phase==0?0:now-phaseStart)+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" tx_read="+txRead+" tx_written="+txWritten);
+                    phase++;
+                    if(phase==5){event("SEQUENCE_COMPLETE phases=4");status("D4 : quatre phases terminées. Raccrocher puis exporter le rapport.");break;}
+                    event("PHASE_TRANSITION phase="+phase+" ms="+System.currentTimeMillis());
+                    if(phase==2){
+                        // Do not even construct a SCO AudioTrack before phase 3.
+                        txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
+                        if(txRecord.getState()!=AudioRecord.STATE_INITIALIZED||!txRecord.setPreferredDevice(mic))throw new IOException("Capture micro refusée.");
+                        txRecord.startRecording();lastTxData=SystemClock.elapsedRealtime();
+                    }else if(phase==3){
+                        txTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
+                        if(txTrack.getState()!=AudioTrack.STATE_INITIALIZED||!txTrack.setPreferredDevice(scoOut))throw new IOException("Sortie TX SCO refusée.");
+                        txTrack.setVolume(0.8f);txTrack.play();
+                    }else if(phase==4){
+                        // Keep microphone capture active: only the TX output is removed.
+                        txTrack.pause();txTrack.flush();txTrack.release();txTrack=null;
+                    }
+                    phaseStart=SystemClock.elapsedRealtime();lastStats=phaseStart;lastRxData=phaseStart;
+                    rxRead=rxWritten=rxDropped=rxEnergy=rxWindow=txRead=txWritten=txEnergy=txWindow=0;rxPeak=txPeak=0;lastRoutes="";
+                    event("PHASE_BEGIN phase="+phase+" duration_ms=15000 label="+labels[phase].replace(' ','_')+" mic_active="+(txRecord!=null)+" tx_active="+(txTrack!=null)+" ms="+System.currentTimeMillis());
+                    phaseNotice(phase,labels[phase],15);now=phaseStart;
                 }
-                if(!rxConfirmed&&rxRoute){rxConfirmed=true;event("ROUTE_CONFIRMED direction=rx input=SCO output=SPEAKER");}
-                if(!txConfirmed&&txRoute){txConfirmed=true;if(txInputId<0){txInputId=ti.getId();event("MIC_SELECTED id="+txInputId+" address="+Privacy.clean(ti.getAddress())+" name="+Privacy.clean(String.valueOf(ti.getProductName())));}event("ROUTE_CONFIRMED direction=tx input=MIC output=SCO");}
+                AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord==null?null:txRecord.getRoutedDevice(),to=txTrack==null?null:txTrack.getRoutedDevice();
+                boolean rxRoute=routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
+                boolean micRoute=ti!=null&&ti.getId()==mic.getId()&&ti.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC;
+                boolean txRoute=txTrack!=null&&routed(txRecord,txTrack,mic.getId(),scoOut.getId(),AudioDeviceInfo.TYPE_BUILTIN_MIC,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
+                String routes="phase="+phase+" rx="+rxRoute+" mic="+micRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId());
+                if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);lastRoutes=routes;}
+                // Observe route conflicts without retrying preferences or aborting the
+                // sequence. Never forward audio to an unexpected endpoint.
+                if(!rxRoute)rxTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
+                if(txTrack!=null&&!txRoute)txTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
                 int nr=rxRecord.read(rxSamples,0,rxSamples.length,AudioRecord.READ_NON_BLOCKING);if(nr<0)throw new IOException("AudioRecord RX.read="+nr);
-                if(nr>0){lastRxData=now;rxRead+=nr;if(rxConfirmed&&txConfirmed&&allowed()&&routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)){
-                    for(int k=0;k<nr;k++){int v=rxSamples[k];if(v!=0)rxNonzero++;rxEnergy+=(long)v*v;rxPeak=Math.max(rxPeak,Math.abs(v));}rxWindow+=nr;
-                    int done=rxTrack.write(rxSamples,0,nr,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack RX.write="+done);rxWritten+=done;rxDropped+=nr-done;
-                }else rxDropped+=nr;Arrays.fill(rxSamples,(short)0);}
-                int nt=txRecord.read(txSamples,0,txSamples.length,AudioRecord.READ_NON_BLOCKING);if(nt<0)throw new IOException("AudioRecord TX.read="+nt);
-                if(nt>0){lastTxData=now;txRead+=nt;if(rxConfirmed&&txConfirmed&&allowed()&&routed(txRecord,txTrack,txInputId,scoOut.getId(),AudioDeviceInfo.TYPE_BUILTIN_MIC,AudioDeviceInfo.TYPE_BLUETOOTH_SCO)){
-                    for(int k=0;k<nt;k++){int v=txSamples[k];if(v!=0)txNonzero++;txEnergy+=(long)v*v;txPeak=Math.max(txPeak,Math.abs(v));}txWindow+=nt;
-                    int done=txTrack.write(txSamples,0,nt,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack TX.write="+done);txWritten+=done;txDropped+=nt-done;
-                }else txDropped+=nt;Arrays.fill(txSamples,(short)0);}
-                if(now-lastStats>=1000){AudioRecordingConfiguration txConfig=txRecord.getActiveRecordingConfiguration(),rxConfig=rxRecord.getActiveRecordingConfiguration();if(txConfig!=null&&txConfig.isClientSilenced())throw new IOException("Capture micro rendue silencieuse par Android.");if(rxConfig!=null&&rxConfig.isClientSilenced())throw new IOException("Capture SCO rendue silencieuse par Android.");
-                    event("INPUT_CONFIG direction=rx client_source="+(rxConfig==null?-1:rxConfig.getClientAudioSource())+" silenced="+(rxConfig!=null&&rxConfig.isClientSilenced())+" routed_id="+(ri==null?-1:ri.getId()));
-                    event("INPUT_CONFIG direction=tx client_source="+(txConfig==null?-1:txConfig.getClientAudioSource())+" silenced="+(txConfig!=null&&txConfig.isClientSilenced())+" routed_id="+(ti==null?-1:ti.getId()));
-                    long rxRms=rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow),txRms=txWindow==0?0:(long)Math.sqrt((double)txEnergy/txWindow);
-                    event("STATS direction=rx samples_read="+rxRead+" samples_written="+rxWritten+" samples_dropped="+rxDropped+" nonzero="+rxNonzero+" rms="+rxRms+" peak="+rxPeak+" route="+rxConfirmed+" underruns="+rxTrack.getUnderrunCount());
-                    event("STATS direction=tx samples_read="+txRead+" samples_written="+txWritten+" samples_dropped="+txDropped+" nonzero="+txNonzero+" rms="+txRms+" peak="+txPeak+" route="+txConfirmed+" underruns="+txTrack.getUnderrunCount());
-                    status("D4 duplex : RX "+rxWritten+" écrits · TX "+txWritten+" écrits · micro RMS "+txRms+" · routes "+(rxConfirmed&&txConfirmed?"confirmées":"en attente"));
+                if(nr>0){lastRxData=now;rxRead+=nr;for(int k=0;k<nr;k++){int v=rxSamples[k];rxEnergy+=(long)v*v;rxPeak=Math.max(rxPeak,Math.abs(v));}rxWindow+=nr;
+                    if(allowed()&&routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)){
+                        int done=rxTrack.write(rxSamples,0,nr,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack RX.write="+done);rxWritten+=done;rxDropped+=nr-done;
+                    }else rxDropped+=nr;Arrays.fill(rxSamples,(short)0);
+                }
+                int nt=txRecord==null?0:txRecord.read(txSamples,0,txSamples.length,AudioRecord.READ_NON_BLOCKING);if(nt<0)throw new IOException("AudioRecord TX.read="+nt);
+                if(nt>0){lastTxData=now;txRead+=nt;for(int k=0;k<nt;k++){int v=txSamples[k];txEnergy+=(long)v*v;txPeak=Math.max(txPeak,Math.abs(v));}txWindow+=nt;
+                    if(txTrack!=null&&allowed()&&routed(txRecord,txTrack,mic.getId(),scoOut.getId(),AudioDeviceInfo.TYPE_BUILTIN_MIC,AudioDeviceInfo.TYPE_BLUETOOTH_SCO)){
+                        int done=txTrack.write(txSamples,0,nt,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack TX.write="+done);txWritten+=done;
+                    }Arrays.fill(txSamples,(short)0);
+                }
+                if(now-lastStats>=1000){
+                    AudioRecordingConfiguration rc=rxRecord.getActiveRecordingConfiguration(),tc=txRecord==null?null:txRecord.getActiveRecordingConfiguration();
+                    event("PHASE_STATS "+routes+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" rx_rms="+(rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow))+" rx_peak="+rxPeak+" rx_head="+Integer.toUnsignedLong(rxTrack.getPlaybackHeadPosition())+" rx_underruns="+rxTrack.getUnderrunCount()+" rx_silenced="+(rc!=null&&rc.isClientSilenced())+" tx_read="+txRead+" tx_written="+txWritten+" tx_rms="+(txWindow==0?0:(long)Math.sqrt((double)txEnergy/txWindow))+" tx_peak="+txPeak+" tx_silenced="+(tc!=null&&tc.isClientSilenced())+" audio_mode="+am.getMode()+" media_volume="+am.getStreamVolume(AudioManager.STREAM_MUSIC));
+                    phaseNotice(phase,labels[phase],Math.max(0,(int)((15000-(now-phaseStart)+999)/1000)));
                     lastStats=now;rxEnergy=rxWindow=txEnergy=txWindow=0;rxPeak=txPeak=0;
                 }
-                if(now-lastRxData>8000||now-lastTxData>8000)throw new IOException("Aucun échantillon audio duplex reçu depuis 8 secondes.");
-                if(nr==0&&nt==0)Thread.sleep(5);
+                // A missing stream is logged instead of preventing phases 3/4 from
+                // testing whether adding/removing TX restores RX. Overall time is 60 s.
+                if(now-lastRxData>8000&&now-lastStats<10)event("PHASE_NO_DATA phase="+phase+" direction=rx");
+                if(txRecord!=null&&now-lastTxData>8000&&now-lastStats<10)event("PHASE_NO_DATA phase="+phase+" direction=tx");
+                Thread.sleep(5);
             }
-            if(!stop&&!RxGate.fresh(SystemClock.elapsedRealtime(),received))throw new IOException("État Bluetooth périmé : duplex arrêté.");
+            if(!stop&&!RxGate.fresh(SystemClock.elapsedRealtime(),received))throw new IOException("État Bluetooth périmé : test arrêté.");
         }finally{
-            if(rxRecord!=null){try{rxRecord.stop();}catch(Exception ignored){}rxRecord.release();}
+            if(txTrack!=null){try{txTrack.pause();txTrack.flush();}catch(Exception ignored){}txTrack.release();}
             if(txRecord!=null){try{txRecord.stop();}catch(Exception ignored){}txRecord.release();}
             if(rxTrack!=null){try{rxTrack.pause();rxTrack.flush();}catch(Exception ignored){}rxTrack.release();}
-            if(txTrack!=null){try{txTrack.pause();txTrack.flush();}catch(Exception ignored){}txTrack.release();}
+            if(rxRecord!=null){try{rxRecord.stop();}catch(Exception ignored){}rxRecord.release();}
         }
     }
     private AudioDeviceInfo preferredBuiltInMic(AudioManager am)throws IOException{

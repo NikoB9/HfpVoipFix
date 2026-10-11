@@ -49,19 +49,28 @@ jobs:
             umask 077
             export LAB_KEYSTORE="$RUNNER_TEMP/hfplab.p12"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$LAB_KEYSTORE"
+          else
+            umask 077
+            export LAB_KEYSTORE="$RUNNER_TEMP/hfplab.p12"
+            export LAB_KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
+            echo "::add-mask::$LAB_KEYSTORE_PASSWORD"
+            keytool -genkeypair -keystore "$LAB_KEYSTORE" -storetype PKCS12 -alias hfplab -keyalg RSA -keysize 3072 -validity 3650 -dname 'CN=HfpVoipLab Experimental' -storepass:env LAB_KEYSTORE_PASSWORD -keypass:env LAB_KEYSTORE_PASSWORD
+            echo 'Temporary signing identity: uninstall the previous APK if Android rejects this update.' > build-signing-note.txt
           fi
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.13.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.19.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.7.13-signed
+          name: HfpVoipLab-1.7.19-signed
           path: |
-            build-lab/HfpVoipLab-1.7.13.apk
+            build-lab/HfpVoipLab-1.7.19.apk
             build-lab/signature.txt
             build-lab/manifest.txt
+            build-lab/alignment.txt
+            build-signing-note.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.13.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.7.19.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'

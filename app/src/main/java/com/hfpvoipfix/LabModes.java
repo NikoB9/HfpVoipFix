@@ -4,7 +4,7 @@ package com.hfpvoipfix;
 public final class LabModes {
     public static final String PROP="debug.hfpvoipfix.mode";
     public static final String[] IDS={"observe","voip","wbs","endpoints","bypass","bypass_comm","soft_rx","soft_tx","soft_duplex","codec","rx","tx","bridge"};
-    public static final String[] NAMES={"0 · Appels natifs","A · VoIP uniquement","B · VoIP + WBS confirmé","C · Ports SCO","D · Contournement Telecom","D1 · Contournement + communication","D2 · Réception logicielle validée","D3 · Essai micro logiciel","D4 · Réception + micro duplex","E · Alignement codec HAL","G · AudioPatch réception","H · AudioPatch microphone","I · AudioPatch bidirectionnel"};
+    public static final String[] NAMES={"0 · Appels natifs","A · VoIP uniquement","B · VoIP + WBS confirmé","C · Ports SCO","D · Contournement Telecom","D1 · Contournement + communication","D2 · Réception logicielle validée","D3 · Essai micro logiciel","D4 · Test progressif en 4 phases","E · Alignement codec HAL","G · AudioPatch réception","H · AudioPatch microphone","I · AudioPatch bidirectionnel"};
     public static final String[] DETAILS={
         "Aucune intervention audio. Appels gérés par Android. Journaux uniquement.",
         "Connexion HFP déclarée VoIP avant retour à Telecom ; aucun paramètre ni port ajouté. Risque modéré.",
@@ -14,7 +14,7 @@ public final class LabModes {
         "D + MODE_IN_COMMUNICATION demandé dans Bluetooth après confirmation du contournement. Seulement depuis MODE_NORMAL ; demande libérée après appel et SCO, ou déconnexion. Sans patch, port ajouté ni écriture codec. Risque expérimental.",
         "Réception seule validée : capture SCO vers haut-parleur. Active temporairement BT_SCO et WBS négocié, puis restaure les deux paramètres. Le micro n’est pas transmis.",
         "Essai expérimental émission seule : microphone du Redmi vers sortie SCO du Samsung. Démarrage manuel, notification persistante, aucun enregistrement. Le correspondant doit confirmer qu’il entend la voix.",
-        "Essai expérimental duplex : réception SCO vers haut-parleur et microphone vers SCO simultanément. Armement explicite avant l’appel, notification persistante, arrêt à la fin de l’appel. Aucun enregistrement. Confirmer les deux sens audio.",
+        "Test progressif : quatre phases de 15 s, RX seul, ajout capture micro, ajout TX SCO, arrêt TX avec capture micro maintenue. Noter le son à chaque phase. Armement explicite avant l’appel, notification persistante, arrêt à la fin de l’appel. Aucun enregistrement. Confirmer les deux sens audio.",
         "A + bt_wbs aligné sur mAudioWbs (off si bande étroite, on si large bande). Ancienne valeur restaurée. Ne force pas CVSD ; peut être identique à B en WBS. Risque modéré.",
         "C + SCO_IN → haut-parleur uniquement. Aucun pont microphone. Risque élevé.",
         "C + microphone → SCO_OUT uniquement. Aucun pont réception. Risque élevé.",

@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 export PATH="$JAVA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$JAVA_HOME/lib:$JAVA_HOME/lib/server:$ANDROID_BUILD_TOOLS/lib64:${LD_LIBRARY_PATH:-}"
 OUT=build-lab
-VERSION="${1:-1.7.18}"
+VERSION="${1:-1.7.19}"
 APK="$OUT/HfpVoipLab-$VERSION.apk"
 mkdir -p "$OUT/classes" "$OUT/dex"
 find "$OUT/classes" "$OUT/dex" -type f -delete
@@ -23,9 +23,7 @@ jar cf "$OUT/app.jar" -C "$OUT/classes" .
 "$ANDROID_BUILD_TOOLS/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
 if [[ -n "${LAB_KEYSTORE:-}" ]]; then
   : "${LAB_KEYSTORE_PASSWORD:?Signing password required}"
-  mkdir -p "$OUT/signer"
-  javac -encoding UTF-8 -Xlint:deprecation -cp "$ANDROID_BUILD_TOOLS/lib/apksigner.jar" -d "$OUT/signer" tools/SignApk.java
-  "$JAVA_HOME/bin/java" -cp "$OUT/signer:$ANDROID_BUILD_TOOLS/lib/apksigner.jar" SignApk "$OUT/aligned.apk" "$APK"
+  "$ANDROID_BUILD_TOOLS/apksigner" sign --ks "$LAB_KEYSTORE" --ks-type PKCS12 --ks-key-alias hfplab --ks-pass env:LAB_KEYSTORE_PASSWORD --key-pass env:LAB_KEYSTORE_PASSWORD --min-sdk-version 30 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out "$APK" "$OUT/aligned.apk"
   "$JAVA_HOME/bin/java" -jar "$ANDROID_BUILD_TOOLS/lib/apksigner.jar" verify --verbose --print-certs "$APK" > "$OUT/signature.txt"
   "$ANDROID_BUILD_TOOLS/zipalign" -c -v 4 "$APK" > "$OUT/alignment.txt"
   "$ANDROID_BUILD_TOOLS/aapt2" dump badging "$APK" > "$OUT/manifest.txt"
