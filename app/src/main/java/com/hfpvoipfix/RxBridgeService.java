@@ -126,7 +126,7 @@ public final class RxBridgeService extends Service {
                 if(now-lastData>8000)throw new IOException("Aucun échantillon reçu depuis 8 secondes.");
                 if(n==0)Thread.sleep(10);
             }
-            if(!stop&&!RxGate.fresh(SystemClock.elapsedRealtime(),received)){event("STOP reason=stale_probe");throw new IOException("État Bluetooth périmé : pont arrêté.");
+            if(!stop&&!RxGate.fresh(SystemClock.elapsedRealtime(),received)){event("STOP reason=stale_probe");throw new IOException("État Bluetooth périmé : pont arrêté.");}
         }catch(Exception e){fatal=String.valueOf(e.getMessage());event("ERROR "+e.getClass().getSimpleName()+" "+fatal);}
         finally{stop=true;permitted=false;
             if(record!=null){try{record.stop();}catch(Exception ignored){}record.release();}
