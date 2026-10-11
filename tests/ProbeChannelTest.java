@@ -20,6 +20,15 @@ public final class ProbeChannelTest {
             }
         }catch(IOException ignored){}}).start();return new Pipe[]{shell,log};
     }
+    static Pipe[] shared(java.util.concurrent.atomic.AtomicReference<String> current)throws Exception{
+        Pipe shell=new Pipe(),log=new Pipe();
+        new Thread(()->{try(BufferedReader r=new BufferedReader(new InputStreamReader(shell.shellRead));PrintWriter w=new PrintWriter(shell.shellWrite,true);PrintWriter event=new PrintWriter(log.shellWrite,true)){String s;
+            while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
+                else if(s.startsWith("setprop")){String token=s.split(" ")[2];current.set(token);w.println("OK"+token);Thread.sleep(50);
+                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.8.1 token="+current.get()+" busy=false");}
+            }
+        }catch(Exception ignored){}}).start();return new Pipe[]{shell,log};
+    }
     public static void main(String[] args)throws Exception{
         Pipe[] p=start(false);String previous="";
         try(ProbeChannel c=new ProbeChannel(p[0],p[1])){for(int i=0;i<100;i++){String line=c.read();if(line.contains("token=old")||line.equals(previous))throw new AssertionError("stale heartbeat");previous=line;}}
@@ -27,6 +36,16 @@ public final class ProbeChannelTest {
         Pipe[] denied=start(true);try(ProbeChannel c=new ProbeChannel(denied[0],denied[1])){try{c.read();throw new AssertionError("setprop failure accepted");}catch(IOException expected){if(!expected.getMessage().contains("setprop"))throw expected;}}
         if(ProbeChannel.matching("LAB epoch=42 STATUS version=1.7.11 token=abc123 busy=false","abc")!=null)throw new AssertionError("prefix match");
         if(ProbeChannel.matching("LAB SOFT_BRIDGE HANDSHAKE STATUS version=1.7.11 token=abc busy=false","abc")!=null)throw new AssertionError("app replay matched");
+        java.util.concurrent.atomic.AtomicReference<String> current=new java.util.concurrent.atomic.AtomicReference<>("");
+        Pipe[] a=shared(current),b=shared(current);
+        try(ProbeChannel ca=new ProbeChannel(a[0],a[1]);ProbeChannel cb=new ProbeChannel(b[0],b[1])){
+            java.util.concurrent.ExecutorService pool=java.util.concurrent.Executors.newFixedThreadPool(2);
+            try{java.util.concurrent.Future<String> fa=pool.submit(()->ca.read()),fb=pool.submit(()->cb.read());
+                String ra=fa.get(5,java.util.concurrent.TimeUnit.SECONDS),rb=fb.get(5,java.util.concurrent.TimeUnit.SECONDS);
+                if(ra.equals(rb))throw new AssertionError("concurrent request identities collided");
+            }finally{pool.shutdownNow();}
+        }
+        System.out.println("PASS concurrent channels cannot overwrite the shared property token");
         System.out.println("PASS live status: 100 fresh handshakes amid 150000 unrelated lines, refusal and dual-process cleanup");
     }
 }

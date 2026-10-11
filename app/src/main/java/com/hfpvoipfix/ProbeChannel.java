@@ -5,6 +5,7 @@ import java.util.concurrent.*;
 
 /** Dedicated live logcat subscription, not a dump of the last N system messages. */
 final class ProbeChannel implements AutoCloseable {
+    private static final Object REQUEST_LOCK=new Object();
     private final java.lang.Process shell,log;
     private final BufferedWriter commands;
     private final BlockingQueue<String> replies=new ArrayBlockingQueue<>(64),events=new ArrayBlockingQueue<>(64);
@@ -29,7 +30,8 @@ final class ProbeChannel implements AutoCloseable {
     private void send(String s)throws IOException{commands.write(s);commands.newLine();commands.flush();}
     private String next(BlockingQueue<String> q,long ms)throws Exception{if(broken)throw new IOException("Canal root/logcat fermé ou saturé.");return q.poll(ms,TimeUnit.MILLISECONDS);}
     static String matching(String s,String token){return s!=null&&s.contains("LAB epoch=")&&s.contains(" STATUS version=")&&s.contains(" token="+token+" ")?s:null;}
-    String read()throws Exception{
+    String read()throws Exception{synchronized(REQUEST_LOCK){return readExclusive();}}
+    private String readExclusive()throws Exception{
         if(broken)throw new IOException("Suivi logcat interrompu.");
         String token=Long.toHexString(System.nanoTime());events.clear();
         send("setprop debug.hfpvoipfix.probe "+token+" && echo OK"+token+" || echo FAIL"+token);

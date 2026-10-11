@@ -68,7 +68,7 @@ public final class CaptureService extends Service {
             final String marker="CAPTURE_MARKER_"+Long.toHexString(System.nanoTime());
             final CountDownLatch firstWrite=new CountDownLatch(1);
             capturing=true;
-            logProcess=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 1").redirectErrorStream(true).start();
+            logProcess=new ProcessBuilder("su","-c","exec logcat -b main -v threadtime -T 1 HfpVoipFix:I HfpLabCapture:I '*:S'").redirectErrorStream(true).start();
             logThread=new Thread(()->readLogs(marker,firstWrite),"hfp-log-reader");logThread.start();
             Root.command("log -p i -t HfpLabCapture "+marker,1000,5);
             if(!firstWrite.await(8,TimeUnit.SECONDS))throw new IOException("Écriture témoin absente : capture non confirmée");
@@ -78,11 +78,11 @@ public final class CaptureService extends Service {
             try{String probe=LabProbe.read(this);SessionStore.note(this,probe);
                 Matcher m=Pattern.compile("epoch=(\\d+)").matcher(probe);if(m.find())callEpoch=m.group(1);
             }catch(Exception e){fail(e.getMessage());}
-            StringBuilder sys=new StringBuilder("HfpVoipLab 1.8.0\n");
+            StringBuilder sys=new StringBuilder("HfpVoipLab 1.8.1\n");
             for(String cmd:new String[]{"getprop ro.build.fingerprint","getprop ro.build.version.release","getprop ro.product.device","getprop ro.board.platform","magisk -V","pidof com.android.bluetooth","getprop debug.hfpvoipfix.native_split","sha256sum /vendor/lib/hw/audio.primary.mt6785.so","sha256sum /vendor/etc/audio_policy_configuration.xml"}){
                 try{sys.append(cmd).append('\n').append(Privacy.clean(Root.command(cmd,4000,5))).append('\n');}catch(Exception e){sys.append("Indisponible : ").append(cmd).append('\n');}
             }
-            save("system-info.txt",sys.toString());save("audio-config.txt",Privacy.clean(Root.config()));snapshot("début");
+            save("system-info.txt",sys.toString());save("audio-config.txt",Privacy.clean(Root.config()));if(!RxBridgeService.alive)snapshot("début");
         }catch(Exception e){fail("Démarrage : "+e.getMessage());capturing=false;closeReader();state("error",error);stopForeground(true);stopSelf();}
     }
     private void autoBridge(){
@@ -96,7 +96,7 @@ public final class CaptureService extends Service {
                         startForegroundService(new Intent(this,RxBridgeService.class).putExtra("mode",mode).putExtra("automatic",true));
                     }
                 }
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
             catch(Exception e){BridgeJournal.write(getFilesDir(),"AUTO_WAIT detail="+Privacy.clean(String.valueOf(e.getMessage())));try{Thread.sleep(2000);}catch(InterruptedException interrupted){return;}}
         }
@@ -131,7 +131,7 @@ public final class CaptureService extends Service {
                         SessionStore.note(this,safe);
                     }
                     if(line.contains("ERROR")||line.contains("UNAVAILABLE")||line.contains("result=unavailable"))fail(safe);
-                    if((line.contains("SCO_BEGIN")&&System.currentTimeMillis()-lastSnapshot>3000)||line.contains("COMM_REQUEST")||line.contains("COMM_RELEASE")||line.contains("SOFT_BRIDGE ROUTE_CONFIRMED")||line.contains("SOFT_BRIDGE ERROR")||line.contains("SOFT_BRIDGE PHASE_BEGIN")){lastSnapshot=System.currentTimeMillis();work.execute(()->{if(capturing)snapshot(safe.contains("SOFT_BRIDGE PHASE_BEGIN")?"D4 "+safe:"SCO début");});}
+                    // Heavy AudioPolicy/AudioFlinger dumps are manual or outside calls only.
                 }
                 if(System.currentTimeMillis()-lastFlush>1000){out.flush();lastFlush=System.currentTimeMillis();
                     if(firstWrite.getCount()==0&&!stopping)state("running","Capture : "+count+" événements"+(dropped>0?" · saturation : milieu tronqué":""));}
@@ -156,7 +156,7 @@ public final class CaptureService extends Service {
         snapshot("fin");
         try{
             SessionStore.finish(this);
-            save("summary.txt","HfpVoipLab 1.8.0\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
+            save("summary.txt","HfpVoipLab 1.8.1\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
                 "\nÉvénements retirés du milieu par rotation : "+dropped+"\nConservation : début (6 Mio) + cinq derniers segments (30 Mio).\n"+
                 "Les horodatages CALL et SCO servent au recoupement ; status=0 ne prouve pas un transport PCM.\n"+
                 "WBS reflète la négociation rapportée par Android, pas une mesure du codec sur le fil.\n"+
