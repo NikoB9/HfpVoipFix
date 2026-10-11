@@ -14,7 +14,7 @@ public final class LabModes {
         "D + MODE_IN_COMMUNICATION demandé dans Bluetooth après confirmation du contournement. Seulement depuis MODE_NORMAL ; demande libérée après appel et SCO, ou déconnexion. Sans patch, port ajouté ni écriture codec. Risque expérimental.",
         "Réception seule validée : capture SCO vers haut-parleur. Active temporairement BT_SCO et WBS négocié, puis restaure les deux paramètres. Le micro n’est pas transmis.",
         "Essai expérimental émission seule : microphone du Redmi vers sortie SCO du Samsung. Démarrage manuel, notification persistante, aucun enregistrement. Le correspondant doit confirmer qu’il entend la voix.",
-        "Test progressif : quatre phases de 15 s, RX seul, ajout capture micro, ajout TX SCO, arrêt TX avec capture micro maintenue. Noter le son à chaque phase. Armement explicite avant l’appel, notification persistante, arrêt à la fin de l’appel. Aucun enregistrement. Confirmer les deux sens audio.",
+        "Test progressif : quatre phases de 15 s, RX seul, ajout capture micro, ajout TX SCO, arrêt TX avec capture micro maintenue. Noter le son à chaque phase. Préparation automatique pendant la capture, notification persistante, arrêt à la fin de l’appel. Aucun enregistrement. Confirmer les deux sens audio.",
         "A + bt_wbs aligné sur mAudioWbs (off si bande étroite, on si large bande). Ancienne valeur restaurée. Ne force pas CVSD ; peut être identique à B en WBS. Risque modéré.",
         "C + SCO_IN → haut-parleur uniquement. Aucun pont microphone. Risque élevé.",
         "C + microphone → SCO_OUT uniquement. Aucun pont réception. Risque élevé.",
@@ -25,6 +25,6 @@ public final class LabModes {
     public static boolean bypass(String s){return s.equals("bypass")||s.equals("bypass_comm")||softwareBridge(s);}
     public static boolean voip(String s){return !s.equals("observe")&&!bypass(s);}
     public static boolean ports(String s){return softwareBridge(s)||s.equals("endpoints")||s.equals("rx")||s.equals("tx")||s.equals("bridge");}
-    public static boolean softwareBridge(String s){return s.equals("soft_rx")||s.equals("soft_tx")||s.equals("soft_duplex");}
+    public static boolean softwareBridge(String s){return "soft_rx".equals(s)||"soft_tx".equals(s)||"soft_duplex".equals(s);}
     public static boolean risky(String s){return ports(s)||bypass(s);}
 }

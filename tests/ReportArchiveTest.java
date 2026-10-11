@@ -7,10 +7,14 @@ public final class ReportArchiveTest {
             for(String name:ReportArchive.REQUIRED)Files.write(dir.resolve(name),"écriture témoin\n".getBytes(StandardCharsets.UTF_8));
             Files.write(dir.resolve("events-00000.log"),"PREMIER\nAudioALSA BT_SCO_RX_Start\n".getBytes(StandardCharsets.UTF_8));
             Files.write(dir.resolve("events-00008.log"),"DERNIER\n".getBytes(StandardCharsets.UTF_8));
+            Files.write(dir.resolve("bridge-events.log"),"PHASE_BEGIN phase=3\n".getBytes(StandardCharsets.UTF_8));
             ReportArchive.build(dir.toFile());
             Path apk=dir.resolve("HFP-Rapport.zip");byte[] first=Files.readAllBytes(apk);
             try(ZipFile z=new ZipFile(apk.toFile())){
                 for(String name:ReportArchive.REQUIRED)if(z.getEntry(name)==null)throw new AssertionError(name);
+                if(z.getEntry("bridge-events.log")==null)throw new AssertionError("independent bridge journal missing");
+                String bridge=new String(z.getInputStream(z.getEntry("bridge-events.log")).readAllBytes(),StandardCharsets.UTF_8);
+                if(!bridge.contains("PHASE_BEGIN phase=3"))throw new AssertionError("phase journal lost");
                 String events=new String(z.getInputStream(z.getEntry("hfp-events.log")).readAllBytes(),StandardCharsets.UTF_8);
                 if(events.indexOf("PREMIER")>=events.indexOf("DERNIER"))throw new AssertionError("chronology");
                 String mtk=new String(z.getInputStream(z.getEntry("mediatek-audio.log")).readAllBytes(),StandardCharsets.UTF_8);

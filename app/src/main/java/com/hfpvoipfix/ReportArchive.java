@@ -22,6 +22,7 @@ final class ReportArchive {
                     if(low.contains("audioalsa")||low.contains("audiobtcvsd")||low.contains("bt_sco_")||low.contains("capturehandler")){mtk.write(line);mtk.newLine();}
                 }
             }zip.closeEntry();mtk.flush();
+            File journal=new File(dir,"bridge-events.log");if(journal.isFile()){zip.putNextEntry(new ZipEntry("bridge-events.log"));Files.copy(journal.toPath(),zip);zip.closeEntry();}
             for(String n:REQUIRED){File f=new File(dir,n);
                 if(!f.isFile())throw new IOException("Fichier requis manquant : "+n);
                 zip.putNextEntry(new ZipEntry(n));Files.copy(f.toPath(),zip);zip.closeEntry();

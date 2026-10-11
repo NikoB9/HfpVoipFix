@@ -14,11 +14,10 @@ public final class ModeActivity extends Activity {
     private TextView status,details,notice;
     private Button apply,start,stop,snap,share,rate,inspect,firmware,firmwareShare,firmwareInspect;
     private TextView firmwareStatus,rxStatus,transportStatus;
-    private Button rxArm,rxStop,probeButton;
+    private Button rxStop,probeButton;
     private Spinner modes,advancedModes;
     private EditText phoneNumber;
-    private CheckBox risk;
-    private boolean visible,working;
+    private boolean visible,working,pendingCapture;
     private String requested="non vérifié";
     private static final String[] PRIMARY_IDS={"observe","soft_rx","soft_tx","soft_duplex"};
     private static final String[] PRIMARY_NAMES={"0 · Téléphone Android","D2 · Réception validée","D3 · Essai micro","D4 · Test progressif en 4 phases"};
@@ -38,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HfpVoipLab 1.7.19",27);text(l,"D2 réception · D3 micro · D4 test progressif (60 s)",16);
+        text(l,"HfpVoipLab 1.7.20",27);text(l,"D2 réception · D3 micro · D4 test progressif (60 s)",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -52,17 +51,10 @@ public final class ModeActivity extends Activity {
         modes=new Spinner(this);modes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,PRIMARY_NAMES));modes.setSelection(1);l.addView(modes);
         details=new TextView(this);details.setTextSize(16);l.addView(details);
         modes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(advancedModes!=null&&advancedModes.getSelectedItemPosition()!=0)advancedModes.setSelection(0);showMode();}});
-        risk=new CheckBox(this);risk.setText("Autoriser les stratégies expérimentales pour cette ouverture");risk.setChecked(false);risk.setOnCheckedChangeListener((b1,x)->refresh());l.addView(risk);
         apply=button(l,"Appliquer au prochain appel",this::applyMode);
-        text(l,"Parcours : choisir D2, D3 ou D4, appliquer hors appel, démarrer la capture, puis armer avant d’appeler. D4 enchaîne automatiquement quatre phases de 15 s : réception seule ; ajout de la capture micro ; duplex complet ; arrêt TX avec micro maintenu. Garder l’appel au moins 65 s et noter quand le son disparaît ou revient. Pour D4, régler le volume Média avant l’appel : la réception vers le haut-parleur utilise ce volume. Le pont n’enregistre pas le son et sa notification permet l’arrêt immédiat. Confirmer les deux sens auprès du correspondant.",15);
+        text(l,"Parcours : choisir D2, D3 ou D4, appliquer hors appel, démarrer la capture, puis appeler après le message « prêt ». La préparation audio est automatique. D4 enchaîne automatiquement quatre phases de 15 s : réception seule ; ajout de la capture micro ; duplex complet ; arrêt TX avec micro maintenu. Garder l’appel au moins 65 s et noter quand le son disparaît ou revient. Pour D4, régler le volume Média avant l’appel : la réception vers le haut-parleur utilise ce volume. Le pont n’enregistre pas le son et sa notification permet l’arrêt immédiat. Confirmer les deux sens auprès du correspondant.",15);
         text(l,"Pont audio · D2, D3 ou duplex expérimental",21);
         rxStatus=new TextView(this);l.addView(rxStatus);
-        rxArm=button(l,"Armer le mode choisi pour le prochain appel",()->{
-            if(!LabModes.softwareBridge(selectedMode())){toast("L’armement audio sert aux modes D2, D3 et D4.");return;}
-            if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},160);toast("Autoriser la permission microphone puis appuyer de nouveau sur Armer.");return;}
-            if(!risk.isChecked()){toast("Cocher l’autorisation des stratégies expérimentales.");return;}
-            armBridge();
-        });
         rxStop=button(l,"Arrêter immédiatement le pont",()->startService(new Intent(this,RxBridgeService.class).setAction("stop")));
         LinearLayout advanced=new LinearLayout(this);advanced.setOrientation(1);advanced.setVisibility(android.view.View.GONE);
         button(root,"Outils avancés · HCI, firmware et autres modes",()->advanced.setVisibility(advanced.getVisibility()==android.view.View.VISIBLE?android.view.View.GONE:android.view.View.VISIBLE));
@@ -74,7 +66,7 @@ public final class ModeActivity extends Activity {
         advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){showMode();}});
         text(l,"Transport SCO · diagnostic natif",21);
         transportStatus=new TextView(this);l.addView(transportStatus);
-        text(l,"Module Bluetooth attendu : 1.7.19. D2/D3/D4 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. D4 affiche la phase et le temps restant. Faire parler le correspondant pendant les quatre phases ; votre micro est transmis uniquement en phase 3. Le test termine le pont après 60 s ; raccrocher ensuite. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
+        text(l,"Module Bluetooth attendu : 1.7.20. Le micro D4 utilise maintenant le chemin MIC par défaut de D3. D2/D3/D4 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. D4 affiche la phase et le temps restant. Faire parler le correspondant pendant les quatre phases ; votre micro est transmis uniquement en phase 3. Le test termine le pont après 60 s ; raccrocher ensuite. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
         button(l,"1 · Préparer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
             .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le téléphone pendant cet essai. Le lab ne partage que des métadonnées techniques : pas de contenu ACL, numéro, adresse, clé ou son. Le réglage précédent sera sauvegardé. Désactiver/réactiver Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairé. MIUI peut ignorer ce réglage AOSP.")
             .setNegativeButton("Annuler",null).setPositiveButton("Préparer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandée. Désactiver puis réactiver Bluetooth dans ses réglages, attendre la reconnexion du Samsung, puis effectuer l’essai."));})).show());
@@ -96,7 +88,10 @@ public final class ModeActivity extends Activity {
         l=root;
         text(l,"2 · Session de diagnostic",21);
         start=button(l,"Démarrer une session de capture",()->{
-            Runnable run=()->action(CaptureService.START);
+            Runnable run=()->{
+                if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){pendingCapture=true;requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},160);return;}
+                action(CaptureService.START);
+            };
             if(new File(getFilesDir(),"sessions.json").exists())new AlertDialog.Builder(this).setTitle("Nouvelle session ?").setMessage("Exporter d’abord la session précédente. La nouvelle session remplace les journaux de travail ; le dernier ZIP est conservé comme précédent.").setNegativeButton("Annuler",null).setPositiveButton("Démarrer",(d,w)->run.run()).show();else run.run();
         });
         snap=button(l,"Instantané AudioPolicy / AudioFlinger",()->action(CaptureService.SNAP));
@@ -120,11 +115,19 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.7.19 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.19 chargé après redémarrage.");
+            if(!p.contains("version=1.7.20 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.20 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
-            if(action.equals("dial")&&p.contains(" requested=soft_rx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D2 avant de composer.");
-            if(action.equals("dial")&&p.contains(" requested=soft_tx ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D3 avant de composer.");
-            if(action.equals("dial")&&p.contains(" requested=soft_duplex ")&&(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Armer D4 avant de composer.");
+            if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
+                long readyUntil=SystemClock.elapsedRealtime()+10000;
+                while((!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false))&&SystemClock.elapsedRealtime()<readyUntil){
+                    if(!CaptureService.alive||!prefs().getString("phase","").equals("running"))throw new IOException("Démarrer la capture pour préparer automatiquement le pont.");
+                    if(getSharedPreferences("rx",0).getBoolean("auto_paused",false))throw new IOException("Pont arrêté : réappliquer le mode pour reprendre.");
+                    Thread.sleep(100);
+                }
+                if(!RxBridgeService.alive||!getSharedPreferences("rx",0).getBoolean("armed",false))throw new IOException("Pont automatique pas encore prêt : attendre son état.");
+                p=prefs().getString("probe","");
+                if(System.currentTimeMillis()-prefs().getLong("probe_at",0)>=4000||!"false".equals(RxGate.parse(p).get("busy")))throw new IOException("État Bluetooth modifié : commande différée.");
+            }
             String token=Long.toHexString(System.nanoTime());
             Root.command("setprop debug.hfpvoipfix.ctrl '"+token+":"+action+":"+number+"'",1000,5);
             long until=System.currentTimeMillis()+6000;
@@ -136,28 +139,24 @@ public final class ModeActivity extends Activity {
             throw new IOException("Commande sans accusé : vérifier le Samsung avant toute nouvelle tentative.");
         });
     }
-    private void armBridge(){final String choice=selectedMode();task(()->{
-        if(!CaptureService.alive||!prefs().getString("phase","idle").equals("running"))throw new IOException("Démarrer et attendre la confirmation de la capture avant d’armer.");
-        String probe=LabProbe.read(this);
-        String property=Root.command("getprop "+LabModes.PROP,1000,4).trim();
-        String error=RxGate.armError(probe,choice,property);
-        if(error!=null)throw new IOException(error);
-        ui.post(()->startForegroundService(new Intent(this,RxBridgeService.class).putExtra("mode",choice)));
-    });}
     private void applyMode(){final String choice=selectedMode();
-        if(LabModes.risky(choice)&&!risk.isChecked()){toast("Autoriser explicitement les stratégies expérimentales.");return;}
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.7.19 "))throw new IOException("Ancien module encore chargé : installer 1.7.19 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.7.20 "))throw new IOException("Ancien module encore chargé : installer 1.7.20 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");
             if(LabModes.bypass(choice)&&!probe.contains(" bypass=true "))throw new IOException("Mode D indisponible sur ce processus.");
             if((choice.equals("bypass_comm")||LabModes.softwareBridge(choice))&&!probe.contains(" disconnect=true "))throw new IOException("D1 indisponible : hook de déconnexion manquant.");
             if(LabModes.voip(choice)&&!probe.contains(" voip=3 "))throw new IOException("Hooks VoIP incomplets.");
+            if(RxBridgeService.alive){
+                startService(new Intent(this,RxBridgeService.class).setAction("stop"));
+                long until=SystemClock.elapsedRealtime()+5000;while(RxBridgeService.alive&&SystemClock.elapsedRealtime()<until)Thread.sleep(50);
+                if(RxBridgeService.alive)throw new IOException("Pont précédent en cours de fermeture.");
+            }
             String answer=Root.command("setprop "+LabModes.PROP+" "+choice+" && getprop "+LabModes.PROP,1000,5).trim();
             if(!choice.equals(answer))throw new IOException("Mode non confirmé par getprop");
-            requested=choice;
+            requested=choice;getSharedPreferences("rx",0).edit().putBoolean("auto_paused",false).apply();
             String phase=prefs().getString("phase","idle");if(phase.equals("running"))SessionStore.note(this,"Mode demandé : "+choice);
             LabProbe.read(this);
             ui.post(()->toast("Mode demandé : "+choice+". Les logs du prochain appel confirmeront les opérations appliquées."));
@@ -174,7 +173,7 @@ public final class ModeActivity extends Activity {
             try{String key=calls[call.getSelectedItemPosition()].split(" · ")[0];SessionStore.result(this,key,RESULTS[rx.getSelectedItemPosition()],RESULTS[tx.getSelectedItemPosition()],other.getText().toString());toast("Résultat enregistré pour "+key);}catch(Exception e){toast("Erreur : "+e.getMessage());}
         }).show();
     }catch(Exception e){toast("Erreur : "+e.getMessage());}}
-    private void inspectReport(){String[] names={"summary.txt","sessions.json","errors.txt","hfp-events.log","audio-policy.txt","audio-flinger.txt","mediatek-audio.log","system-info.txt","audio-config.txt","audio-manager.txt"};
+    private void inspectReport(){String[] names={"summary.txt","sessions.json","errors.txt","hfp-events.log","bridge-events.log","audio-policy.txt","audio-flinger.txt","mediatek-audio.log","system-info.txt","audio-config.txt","audio-manager.txt"};
         inspectZip("HFP-Rapport.zip",names);
     }
     private void inspectZip(String archive,String[] names){
@@ -208,15 +207,19 @@ public final class ModeActivity extends Activity {
         boolean collecting=FirmwareService.alive;
         if(transportStatus!=null)transportStatus.setText(getSharedPreferences("transport",0).contains("previous")?"Trace demandée par le lab : réglage précédent sauvegardé, à restaurer après collecte. Activation réelle à confirmer dans hci-transport.txt.":"Aucun réglage de trace détenu par le lab. Le réglage système peut être différent.");
         boolean bridging=RxBridgeService.alive;
-        if(rxStatus!=null)rxStatus.setText(getSharedPreferences("rx",0).getString("status","Pont non armé."));
-        if(rxArm!=null){rxArm.setEnabled(!bridging&&!collecting&&!working&&phase.equals("running")&&risk.isChecked()&&LabModes.softwareBridge(selectedMode()));rxStop.setEnabled(bridging);}
+        if(rxStatus!=null)rxStatus.setText(getSharedPreferences("rx",0).getString("status","Pont automatique en attente de capture."));
+        if(rxStop!=null)rxStop.setEnabled(bridging);
         if(probeButton!=null)probeButton.setEnabled(!bridging&&!working);
         if(firmwareStatus!=null)firmwareStatus.setText(fp.getString("status","Aucune collecte statique effectuée."));
         if(firmware!=null){firmware.setEnabled(!bridging&&!CaptureService.alive&&!collecting&&!working);boolean fr=fs.equals("ready")&&!collecting&&new File(getFilesDir(),"HFP-Firmware.zip").isFile();firmwareShare.setEnabled(fr);firmwareInspect.setEnabled(fr&&!working);}
         boolean running=phase.equals("running"), starting=phase.equals("starting"), processing=phase.equals("processing");
-        if(start!=null){start.setEnabled(!collecting&&!running&&!starting&&!processing&&!working);stop.setEnabled(!bridging&&(running||starting||phase.equals("error"))&&!processing);snap.setEnabled(running);rate.setEnabled(running);}
-        if(apply!=null)apply.setEnabled(!bridging&&!collecting&&!working&&!starting&&!processing&&(!LabModes.risky(selectedMode())||risk.isChecked()));
+        if(start!=null){start.setEnabled(!collecting&&!running&&!starting&&!processing&&!working);stop.setEnabled((running||starting||phase.equals("error"))&&!processing);snap.setEnabled(running);rate.setEnabled(running);}
+        if(apply!=null)apply.setEnabled(!collecting&&!working&&!starting&&!processing);
         boolean ready=phase.equals("ready")&&new File(getFilesDir(),"HFP-Rapport.zip").isFile();if(share!=null){share.setEnabled(ready);inspect.setEnabled(ready&&!working);}
+    }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(requestCode,permissions,results);
+        if(requestCode==160&&pendingCapture){pendingCapture=false;if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)action(CaptureService.START);else toast("La permission microphone est nécessaire au pont audio.");}
     }
     private final Runnable poll=new Runnable(){public void run(){refresh();if(visible)ui.postDelayed(this,1000);}};
     @Override protected void onResume(){super.onResume();visible=true;poll.run();}

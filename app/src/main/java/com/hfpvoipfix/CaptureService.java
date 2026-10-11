@@ -17,7 +17,7 @@ public final class CaptureService extends Service {
     public static final String START="hfp.start",STOP="hfp.stop",SNAP="hfp.snap";
     private final ExecutorService work=Executors.newSingleThreadExecutor();
     private java.lang.Process logProcess;
-    private Thread logThread;
+    private Thread logThread,autoThread;
     private volatile boolean capturing,stopping;
     private volatile long count,scanned,dropped;
     private volatile String error="";
@@ -57,13 +57,13 @@ public final class CaptureService extends Service {
         return START_NOT_STICKY;
     }
     private void start(){if(capturing)return;
-        stopping=false;count=scanned=dropped=0;error="";
+        stopping=false;count=scanned=dropped=0;error="";getSharedPreferences("rx",0).edit().putBoolean("auto_paused",false).apply();
         state("starting","Vérification root et écriture témoin…");
         try{
             Root.check();getSharedPreferences("capture",0).edit().putString("root","accordé").apply();
             // Preserve an earlier unexported/finished session until the user explicitly starts anew.
             File archive=file("previous-session.zip");if(file("HFP-Rapport.zip").isFile())Files.copy(file("HFP-Rapport.zip").toPath(),archive.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            for(File f:Objects.requireNonNull(getFilesDir().listFiles()))if(f.getName().startsWith("events-")||f.getName().matches("(summary|errors|audio-policy|audio-flinger|audio-manager|audio-config|system-info)\\.txt")||f.getName().equals("mediatek-audio.log")||f.getName().equals("HFP-Rapport.zip"))f.delete();
+            for(File f:Objects.requireNonNull(getFilesDir().listFiles()))if(f.getName().startsWith("events-")||f.getName().matches("(summary|errors|audio-policy|audio-flinger|audio-manager|audio-config|system-info)\\.txt")||(f.getName().equals("mediatek-audio.log")||f.getName().equals("bridge-events.log"))||f.getName().equals("HFP-Rapport.zip"))f.delete();
             SessionStore.begin(this);save("errors.txt","");getSharedPreferences("capture",0).edit().putString("strategy","en attente du prochain appel").putString("last_mode","aucun").putString("last_call_state","—").apply();
             final String marker="CAPTURE_MARKER_"+Long.toHexString(System.nanoTime());
             final CountDownLatch firstWrite=new CountDownLatch(1);
@@ -73,16 +73,33 @@ public final class CaptureService extends Service {
             Root.command("log -p i -t HfpLabCapture "+marker,1000,5);
             if(!firstWrite.await(8,TimeUnit.SECONDS))throw new IOException("Écriture témoin absente : capture non confirmée");
             if(!capturing)throw new IOException("logcat interrompu au démarrage");
-            state("running","Capture confirmée. Effectuer les appels puis noter les résultats.");
+            state("running","Capture confirmée. Préparation automatique du pont hors appel.");
+            autoThread=new Thread(this::autoBridge,"hfp-auto-bridge");autoThread.start();
             try{String probe=LabProbe.read(this);SessionStore.note(this,probe);
                 Matcher m=Pattern.compile("epoch=(\\d+)").matcher(probe);if(m.find())callEpoch=m.group(1);
             }catch(Exception e){fail(e.getMessage());}
-            StringBuilder sys=new StringBuilder("HfpVoipLab 1.7.19\n");
+            StringBuilder sys=new StringBuilder("HfpVoipLab 1.7.20\n");
             for(String cmd:new String[]{"getprop ro.build.fingerprint","getprop ro.build.version.release","getprop ro.product.device","getprop ro.board.platform","magisk -V","pidof com.android.bluetooth"}){
                 try{sys.append(cmd).append('\n').append(Privacy.clean(Root.command(cmd,4000,5))).append('\n');}catch(Exception e){sys.append("Indisponible : ").append(cmd).append('\n');}
             }
             save("system-info.txt",sys.toString());save("audio-config.txt",Privacy.clean(Root.config()));snapshot("début");
         }catch(Exception e){fail("Démarrage : "+e.getMessage());capturing=false;closeReader();state("error",error);stopForeground(true);stopSelf();}
+    }
+    private void autoBridge(){
+        while(capturing&&!stopping){
+            try{
+                if(!RxBridgeService.alive&&!getSharedPreferences("rx",0).getBoolean("auto_paused",false)&&checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED){
+                    String p=LabProbe.read(this);
+                    String mode=Root.command("getprop "+LabModes.PROP,1000,4).trim();
+                    if(AutoBridgeGate.prepare(p,mode,System.currentTimeMillis()-getSharedPreferences("capture",0).getLong("probe_at",0),capturing&&!stopping&&!getSharedPreferences("rx",0).getBoolean("auto_paused",false),RxBridgeService.alive,true)){
+                        BridgeJournal.write(getFilesDir(),"AUTO_PREPARE mode="+mode);
+                        startForegroundService(new Intent(this,RxBridgeService.class).putExtra("mode",mode).putExtra("automatic",true));
+                    }
+                }
+                Thread.sleep(1000);
+            }catch(InterruptedException e){Thread.currentThread().interrupt();return;}
+            catch(Exception e){BridgeJournal.write(getFilesDir(),"AUTO_WAIT detail="+Privacy.clean(String.valueOf(e.getMessage())));try{Thread.sleep(2000);}catch(InterruptedException interrupted){return;}}
+        }
     }
     private void readLogs(String marker,CountDownLatch firstWrite){
         int part=0;long size=0,partCount=0;Map<Integer,Long> sizes=new HashMap<>();
@@ -130,12 +147,16 @@ public final class CaptureService extends Service {
         }
     }
     private void closeReader(){if(logProcess!=null)logProcess.destroy();if(logThread!=null)try{logThread.join(2500);}catch(InterruptedException e){Thread.currentThread().interrupt();}}
-    private void stop(){if(RxBridgeService.alive){fail("Arrêter le pont D2 avant de terminer la capture.");return;}stopping=true;state("processing","Finalisation du rapport…");capturing=false;closeReader();
+    private void stop(){stopping=true;getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();
+        if(RxBridgeService.alive){startService(new Intent(this,RxBridgeService.class).setAction("stop"));long until=SystemClock.elapsedRealtime()+6000;
+            while(RxBridgeService.alive&&SystemClock.elapsedRealtime()<until)try{Thread.sleep(50);}catch(InterruptedException e){Thread.currentThread().interrupt();return;}
+            if(RxBridgeService.alive){fail("Pont audio toujours en fermeture. Réessayer de terminer après son arrêt.");return;}
+        }state("processing","Finalisation du rapport…");capturing=false;closeReader();
         if(logThread!=null&&logThread.isAlive()){fail("Lecteur non arrêté : export différé");state("error",error);stopForeground(true);return;}
         snapshot("fin");
         try{
             SessionStore.finish(this);
-            save("summary.txt","HfpVoipLab 1.7.19\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
+            save("summary.txt","HfpVoipLab 1.7.20\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
                 "\nÉvénements retirés du milieu par rotation : "+dropped+"\nConservation : début (6 Mio) + cinq derniers segments (30 Mio).\n"+
                 "Les horodatages CALL et SCO servent au recoupement ; status=0 ne prouve pas un transport PCM.\n"+
                 "WBS reflète la négociation rapportée par Android, pas une mesure du codec sur le fil.\n"+
@@ -148,5 +169,5 @@ public final class CaptureService extends Service {
         stopForeground(true);stopSelf();
     }
     @Override public IBinder onBind(Intent i){return null;}
-    @Override public void onDestroy(){alive=false;capturing=false;closeReader();work.shutdown();super.onDestroy();}
+    @Override public void onDestroy(){alive=false;capturing=false;if(autoThread!=null)autoThread.interrupt();closeReader();work.shutdown();super.onDestroy();}
 }
