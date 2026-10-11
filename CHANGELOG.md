@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.16-lab
+
+- Reverted D4 RX playback to `USAGE_MEDIA`: the 1.7.15 report showed MIUI rerouting the RX and TX communication tracks, so output routes never stabilized and capture never began.
+- Added D4 media-volume telemetry and an in-app instruction to adjust the media volume for speaker playback.
+- Bumped package version to `versionCode 51`.
+
 ## 1.7.15-lab
 
 - D4 receive playback now uses Android's voice-communication volume group while retaining the explicit speaker route. The report showed the media stream at volume index 3/15 and the active RX track attenuated by 48 dB, matching the silent speaker report.
