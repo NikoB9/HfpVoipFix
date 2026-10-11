@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.17-lab
+
+- D4 starts both input captures before activating the two output tracks. The 1.7.16 report showed MIUI redirecting the RX output to SCO during output-only stabilization, before captures opened.
+- Kept `USAGE_MEDIA`, the media-volume telemetry, explicit device preferences, and continuous route checks. This is a routing experiment; speaker audio still needs on-device confirmation.
+- Bumped package version to `versionCode 52`.
+
 ## 1.7.16-lab
 
 - Reverted D4 RX playback to `USAGE_MEDIA`: the 1.7.15 report showed MIUI rerouting the RX and TX communication tracks, so output routes never stabilized and capture never began.

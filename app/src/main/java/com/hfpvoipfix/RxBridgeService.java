@@ -46,7 +46,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.16".equals(values.get("version")))throw new IOException("Module 1.7.16 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.17".equals(values.get("version")))throw new IOException("Module 1.7.17 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -164,23 +164,16 @@ public final class RxBridgeService extends Service {
             if(!rxRecord.setPreferredDevice(scoIn)||!txRecord.setPreferredDevice(mic)||!rxTrack.setPreferredDevice(speaker)||!txTrack.setPreferredDevice(scoOut))throw new IOException("Routage d’un flux audio duplex refusé.");
             rxTrack.setVolume(0.35f);txTrack.setVolume(0.8f);
             event("PLAYBACK_VOLUME rx=MEDIA index="+am.getStreamVolume(AudioManager.STREAM_MUSIC)+" max="+am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
-            // MediaTek reopens active input streams when SCO playback becomes active.
-            // Stabilize both outputs first, then open RX and the explicitly routed mic.
-            rxTrack.play();txTrack.play();
-            long routeDeadline=SystemClock.elapsedRealtime()+1500;
-            while(SystemClock.elapsedRealtime()<routeDeadline){
-                AudioDeviceInfo rxOut=rxTrack.getRoutedDevice(),txOut=txTrack.getRoutedDevice();
-                if(rxOut!=null&&txOut!=null&&rxOut.getId()==speaker.getId()&&txOut.getId()==scoOut.getId())break;
-                Thread.sleep(20);
-            }
-            AudioDeviceInfo rxOut=rxTrack.getRoutedDevice(),txOut=txTrack.getRoutedDevice();
-            if(rxOut==null||txOut==null||rxOut.getId()!=speaker.getId()||txOut.getId()!=scoOut.getId())throw new IOException("Les sorties haut-parleur/SCO ne se stabilisent pas avant l’ouverture des captures.");
-            rxRecord.startRecording();txRecord.startRecording();
+            // Start capture before activating the SCO playback track. On this
+            // MIUI policy, waiting for both outputs first can reroute RX to
+            // SCO before the input paths are open. Keep the known working D4
+            // startup order and verify both routes continuously below.
+            rxRecord.startRecording();txRecord.startRecording();rxTrack.play();txTrack.play();
             short[] rxSamples=new short[rate/50],txSamples=new short[rate/50];
             long opened=SystemClock.elapsedRealtime(),lastStats=opened,lastRxData=opened,lastTxData=opened;
             long rxRead=0,rxWritten=0,rxDropped=0,rxNonzero=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txDropped=0,txNonzero=0,txEnergy=0,txWindow=0;
             int rxPeak=0,txPeak=0,txInputId=-1;boolean rxConfirmed=false,txConfirmed=false;
-            event("OPEN direction=duplex rate="+rate+" startup=outputs_before_inputs rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_source=VOICE_COMMUNICATION tx_input_id="+mic.getId()+" tx_output_id="+scoOut.getId()+" no_audio_saved");
+            event("OPEN direction=duplex rate="+rate+" startup=inputs_before_outputs rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_source=VOICE_COMMUNICATION tx_input_id="+mic.getId()+" tx_output_id="+scoOut.getId()+" no_audio_saved");
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de duplex.");
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
