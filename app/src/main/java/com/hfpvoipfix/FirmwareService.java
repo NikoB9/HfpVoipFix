@@ -31,7 +31,7 @@ public final class FirmwareService extends Service {
                 public byte[] read(String path,long limit)throws Exception{return readStatic(path,limit);}
                 public String transport(){state("running","Analyse des métadonnées HCI (sans export des paquets bruts)…");return TransportDiagnostic.inspect();}
                 public String identity()throws Exception{
-                    StringBuilder s=new StringBuilder("HfpVoipLab 1.7.11\nCollecte ms="+System.currentTimeMillis()+"\n");
+                    StringBuilder s=new StringBuilder("HfpVoipLab 1.7.12\nCollecte ms="+System.currentTimeMillis()+"\n");
                     for(String key:new String[]{"ro.build.fingerprint","ro.vendor.build.fingerprint","ro.product.device","ro.board.platform","ro.hardware","ro.hardware.audio.primary","ro.build.version.release"})s.append(key).append('=').append(Root.command("getprop "+key,4000,5));return s.toString();
                 }
             },message->state("running",message));

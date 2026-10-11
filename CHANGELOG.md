@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.12-lab
+
+- D2/D3/D4 arming now requires a fresh Bluetooth status confirming the matching requested mode, idle call state, current module version, and required hooks. A stale 1.7.10 module or an unapplied D4 mode is rejected before the bridge service starts, with a visible instruction.
+- Bumped package version to `versionCode 47`.
+
 ## 1.7.11-lab
 
 - Added D4 experimental full duplex: simultaneous SCO playback to the Redmi speaker and Redmi microphone transmission to SCO. Both routes must be confirmed before either stream is forwarded; either route change stops the bridge. PCM is not saved.
