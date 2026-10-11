@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.14-lab
+
+- D4 test now stabilizes SCO and speaker outputs before starting either input capture.
+- Explicitly requests the built-in bottom microphone for the VOICE_COMMUNICATION input.
+- Logs startup order and microphone candidate; PCM remains unsaved.
+
 ## 1.7.13-lab
 
 - D4 now requests `VOICE_COMMUNICATION` for the Redmi microphone input. The provided MIUI audio policy exposes a separate `voip_tx` input profile, while the D4 RX and the previous D4 mic source both used `primary input` (single active stream). This is a targeted experiment; it is not yet confirmed to select `voip_tx` or to carry audio on the device.
