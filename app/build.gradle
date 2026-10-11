@@ -9,8 +9,8 @@ android {
         applicationId 'com.hfpvoipfix'
         minSdk 30
         targetSdk 30
-        versionCode 52
-        versionName '1.7.17-lab'
+        versionCode 53
+        versionName '1.7.18-lab'
     }
 }
 

@@ -46,7 +46,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.17".equals(values.get("version")))throw new IOException("Module 1.7.17 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.18".equals(values.get("version")))throw new IOException("Module 1.7.18 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Armer hors appel après avoir choisi D2 ou D3.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -170,9 +170,9 @@ public final class RxBridgeService extends Service {
             // startup order and verify both routes continuously below.
             rxRecord.startRecording();txRecord.startRecording();rxTrack.play();txTrack.play();
             short[] rxSamples=new short[rate/50],txSamples=new short[rate/50];
-            long opened=SystemClock.elapsedRealtime(),lastStats=opened,lastRxData=opened,lastTxData=opened;
+            long opened=SystemClock.elapsedRealtime(),lastStats=opened,lastRxData=opened,lastTxData=opened,routeUnstableSince=opened,lastRouteRetry=0;
             long rxRead=0,rxWritten=0,rxDropped=0,rxNonzero=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txDropped=0,txNonzero=0,txEnergy=0,txWindow=0;
-            int rxPeak=0,txPeak=0,txInputId=-1;boolean rxConfirmed=false,txConfirmed=false;
+            int rxPeak=0,txPeak=0,txInputId=-1;boolean rxConfirmed=false,txConfirmed=false,routeLossReported=false;
             event("OPEN direction=duplex rate="+rate+" startup=inputs_before_outputs rx_input_id="+scoIn.getId()+" rx_output_id="+speaker.getId()+" tx_source=VOICE_COMMUNICATION tx_input_id="+mic.getId()+" tx_output_id="+scoOut.getId()+" no_audio_saved");
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de duplex.");
@@ -180,11 +180,18 @@ public final class RxBridgeService extends Service {
                 AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord.getRoutedDevice(),to=txTrack.getRoutedDevice();
                 boolean rxRoute=ri!=null&&ro!=null&&ri.getId()==scoIn.getId()&&ri.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO&&ro.getId()==speaker.getId()&&ro.getType()==AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
                 boolean txRoute=ti!=null&&to!=null&&(txInputId<0||ti.getId()==txInputId)&&ti.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC&&to.getId()==scoOut.getId()&&to.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
-                if(rxConfirmed&&!rxRoute)throw new IOException("Route D4 réception changée : arrêt du duplex.");
-                if(txConfirmed&&!txRoute)throw new IOException("Route D4 microphone changée : arrêt du duplex.");
+                if(!rxRoute)rxConfirmed=false;
+                if(!txRoute)txConfirmed=false;
+                if(!rxRoute||!txRoute){
+                    if(!routeLossReported){routeLossReported=true;routeUnstableSince=now;event("ROUTE_LOST rx="+rxRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId()));}
+                    if(now-lastRouteRetry>=300){boolean rxPreferred=rxTrack.setPreferredDevice(speaker),txPreferred=txTrack.setPreferredDevice(scoOut);event("ROUTE_RETRY rx_speaker="+rxPreferred+" tx_sco="+txPreferred);lastRouteRetry=now;}
+                    if(now-routeUnstableSince>3000)throw new IOException("Routes D4 RX/micro instables depuis 3 s ; duplex arrêté sans transmettre sur une route incorrecte.");
+                }else{
+                    if(routeLossReported)event("ROUTE_RECOVERED duration_ms="+(now-routeUnstableSince));
+                    routeLossReported=false;routeUnstableSince=0;lastRouteRetry=0;
+                }
                 if(!rxConfirmed&&rxRoute){rxConfirmed=true;event("ROUTE_CONFIRMED direction=rx input=SCO output=SPEAKER");}
                 if(!txConfirmed&&txRoute){txConfirmed=true;if(txInputId<0){txInputId=ti.getId();event("MIC_SELECTED id="+txInputId+" address="+Privacy.clean(ti.getAddress())+" name="+Privacy.clean(String.valueOf(ti.getProductName())));}event("ROUTE_CONFIRMED direction=tx input=MIC output=SCO");}
-                if((!rxConfirmed||!txConfirmed)&&now-opened>2500)throw new IOException(!rxConfirmed?"Route D4 SCO → haut-parleur non confirmée.":"Route D4 microphone → SCO non confirmée.");
                 int nr=rxRecord.read(rxSamples,0,rxSamples.length,AudioRecord.READ_NON_BLOCKING);if(nr<0)throw new IOException("AudioRecord RX.read="+nr);
                 if(nr>0){lastRxData=now;rxRead+=nr;if(rxConfirmed&&txConfirmed&&allowed()&&routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)){
                     for(int k=0;k<nr;k++){int v=rxSamples[k];if(v!=0)rxNonzero++;rxEnergy+=(long)v*v;rxPeak=Math.max(rxPeak,Math.abs(v));}rxWindow+=nr;

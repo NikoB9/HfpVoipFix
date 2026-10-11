@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.18-lab
+
+- D4 now logs both actual routes when MIUI changes them, reasserts the preferred speaker/SCO output routes briefly, and waits up to three continuous seconds for both paths to recover.
+- Audio remains gated unless both RX and microphone paths are currently routed to their requested devices. A persistent route conflict stops the bridge without forwarding audio on the wrong route.
+- Bumped package version to `versionCode 53`.
+
 ## 1.7.17-lab
 
 - D4 starts both input captures before activating the two output tracks. The 1.7.16 report showed MIUI redirecting the RX output to SCO during output-only stabilization, before captures opened.
