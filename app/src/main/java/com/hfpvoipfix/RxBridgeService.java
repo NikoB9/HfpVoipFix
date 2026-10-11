@@ -47,8 +47,8 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.21".equals(values.get("version")))throw new IOException("Module 1.7.21 non chargé : redémarrage LSPosed nécessaire.");
-            if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3 ou D4.");event("ARM_CONFIRMED direction="+mode);}
+            if(!"1.7.22".equals(values.get("version")))throw new IOException("Module 1.7.22 non chargé : redémarrage LSPosed nécessaire.");
+            if(first){first=false;mode=values.get("requested");if("soft_duplex".equals(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial))throw new IOException("D4 1.7.22 : installer le candidat Magisk 1.7.22 puis redémarrer avec cette APK.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3 ou D4.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
                 if(RxGate.ready(p)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
@@ -140,7 +140,7 @@ public final class RxBridgeService extends Service {
         status(message);
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · test progressif 1.7.21")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · test progressif 1.7.22")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -182,7 +182,7 @@ public final class RxBridgeService extends Service {
                     event("PHASE_TRANSITION phase="+phase+" ms="+System.currentTimeMillis());
                     if(phase==2){
                         // Do not even construct a SCO AudioTrack before phase 3.
-                        txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.MIC).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
+                        txRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
                         if(txRecord.getState()!=AudioRecord.STATE_INITIALIZED)throw new IOException("Capture micro refusée.");
                         txRecord.startRecording();lastTxData=SystemClock.elapsedRealtime();
                     }else if(phase==3){
@@ -195,13 +195,13 @@ public final class RxBridgeService extends Service {
                     }
                     phaseStart=SystemClock.elapsedRealtime();lastStats=phaseStart;lastRxData=phaseStart;
                     rxRead=rxWritten=rxDropped=rxEnergy=rxWindow=txRead=txWritten=txEnergy=txWindow=0;rxPeak=txPeak=0;lastRoutes="";
-                    event("PHASE_BEGIN phase="+phase+" duration_ms=15000 label="+labels[phase].replace(' ','_')+" mic_source=MIC mic_policy=default mic_active="+(txRecord!=null)+" tx_active="+(txTrack!=null)+" ms="+System.currentTimeMillis());
+                    event("PHASE_BEGIN phase="+phase+" duration_ms=15000 label="+labels[phase].replace(' ','_')+" mic_source=VOICE_COMMUNICATION mic_policy=default mic_active="+(txRecord!=null)+" tx_active="+(txTrack!=null)+" ms="+System.currentTimeMillis());
                     phaseNotice(phase,labels[phase],15);now=phaseStart;
                 }
                 AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord==null?null:txRecord.getRoutedDevice(),to=txTrack==null?null:txTrack.getRoutedDevice();
                 boolean rxRoute=routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
                 boolean micRoute=ti!=null&&(txInputId<0||ti.getId()==txInputId)&&ti.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC;
-                if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source=MIC policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
+                if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source=VOICE_COMMUNICATION policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
                 boolean txRoute=txTrack!=null&&routed(txRecord,txTrack,txInputId,scoOut.getId(),AudioDeviceInfo.TYPE_BUILTIN_MIC,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
                 String routes="phase="+phase+" rx="+rxRoute+" mic="+micRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId());
                 if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);lastRoutes=routes;}
