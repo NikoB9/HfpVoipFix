@@ -47,7 +47,7 @@ public final class RxBridgeService extends Service {
             probe=p;received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.7.20".equals(values.get("version")))throw new IOException("Module 1.7.20 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.7.21".equals(values.get("version")))throw new IOException("Module 1.7.21 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3 ou D4.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -140,7 +140,7 @@ public final class RxBridgeService extends Service {
         status(message);
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · test progressif 1.7.20")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · test progressif 1.7.21")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }

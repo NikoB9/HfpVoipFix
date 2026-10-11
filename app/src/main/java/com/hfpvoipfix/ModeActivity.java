@@ -37,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HfpVoipLab 1.7.20",27);text(l,"D2 réception · D3 micro · D4 test progressif (60 s)",16);
+        text(l,"HfpVoipLab 1.7.21",27);text(l,"D2 réception · D3 micro · D4 test progressif (60 s)",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -66,7 +66,7 @@ public final class ModeActivity extends Activity {
         advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){showMode();}});
         text(l,"Transport SCO · diagnostic natif",21);
         transportStatus=new TextView(this);l.addView(transportStatus);
-        text(l,"Module Bluetooth attendu : 1.7.20. Le micro D4 utilise maintenant le chemin MIC par défaut de D3. D2/D3/D4 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. D4 affiche la phase et le temps restant. Faire parler le correspondant pendant les quatre phases ; votre micro est transmis uniquement en phase 3. Le test termine le pont après 60 s ; raccrocher ensuite. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
+        text(l,"Module Bluetooth attendu : 1.7.21. Le micro D4 utilise maintenant le chemin MIC par défaut de D3. D2/D3/D4 ne s’ouvrent qu’après confirmation du mode, du SCO et du routage réel. D4 affiche la phase et le temps restant. Faire parler le correspondant pendant les quatre phases ; votre micro est transmis uniquement en phase 3. Le test termine le pont après 60 s ; raccrocher ensuite. Arrêter le pont ou raccrocher pour couper l’accès micro. Une nouvelle trace HCI n’est pas nécessaire.",15);
         button(l,"1 · Préparer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
             .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le téléphone pendant cet essai. Le lab ne partage que des métadonnées techniques : pas de contenu ACL, numéro, adresse, clé ou son. Le réglage précédent sera sauvegardé. Désactiver/réactiver Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairé. MIUI peut ignorer ce réglage AOSP.")
             .setNegativeButton("Annuler",null).setPositiveButton("Préparer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandée. Désactiver puis réactiver Bluetooth dans ses réglages, attendre la reconnexion du Samsung, puis effectuer l’essai."));})).show());
@@ -115,7 +115,7 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.7.20 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.20 chargé après redémarrage.");
+            if(!p.contains("version=1.7.21 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.7.21 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -142,7 +142,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.7.20 "))throw new IOException("Ancien module encore chargé : installer 1.7.20 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.7.21 "))throw new IOException("Ancien module encore chargé : installer 1.7.21 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");

@@ -1,0 +1,13 @@
+# HfpVoipLab 1.7.21 — native isolation trial companion
+
+The app retains the four-phase D4 sequence and the validated standalone D2/D3 configurations from 1.7.20. Version gating is updated consistently. Capture system-info now records the native trial marker and SHA-256 of the loaded vendor library path and audio policy configuration, so an export distinguishes a native overlay test from an unmodified app-only test. File hashes identify the on-disk overlay; they do not prove a library was loaded into a process.
+
+Analysis of the exact user-supplied firmware confirmed global capture rerouting and shared-output synchronization. An experimental, exact-ROM Magisk companion was prepared privately from the supplied firmware: a separate SCO input profile, narrow SCO/MIC cross-device capture exceptions and SCO output isolation. It preserves other device-pair code paths. Raw vendor binaries, addresses, patches and firmware fingerprints remain outside this public repository.
+
+Host verification of the companion: source inventory SHA-256 verification; 147 ARM emulator/ELF checks for branch destinations, device pairs, registers, stack, condition flags and original paths; installer hash/ROM/active-architecture rejection and one-boot disable-marker checks. These do not establish Android linker compatibility, HAL synchronization correctness or hardware duplex success.
+
+The companion uses Magisk systemless vendor overlays. The installer refuses mismatched source hashes/ROM, a loaded 64-bit HAL or competing overlays. Its late_start script marks it disabled for the next boot; this does not unmount the current trial. A subsequent reboot restores original files once that marker exists. If late_start did not execute, disable it manually before rebooting. The overlay changes SCO behavior in the audio service for the whole trial boot, and may disrupt ordinary audio/Bluetooth calls. There is no permanent vendor partition write, direct mixer control, PCM device access or SELinux rule addition.
+
+Install the APK and the companion outside calls, enable LSPosed for the new installation if needed, then reboot once after both installations. Use D4: apply, start capture, wait for ready, call for 65 seconds. Note received sound in each 15-second phase; microphone is transmitted only in phase 3. End call, finish capture and export HFP-Rapport.zip. Reboot afterward to end the native trial. A different temporary APK signature can require uninstalling the previous app first. APK-only 1.7.21 does not fix the two native routing conflicts.
+
+Magisk packaging and overlay reference: https://topjohnwu.github.io/Magisk/guides.html (checked 2026-10-11).
