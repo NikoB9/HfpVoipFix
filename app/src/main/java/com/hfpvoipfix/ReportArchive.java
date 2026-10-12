@@ -8,6 +8,7 @@ import java.util.zip.*;
 /** Pure Java export path, also exercised by host tests. Never publishes a half-written ZIP. */
 final class ReportArchive {
     static final String[] REQUIRED={"summary.txt","sessions.json","audio-policy.txt","audio-flinger.txt","mediatek-audio.log","system-info.txt","errors.txt","audio-config.txt","audio-manager.txt"};
+    static final String[] OPTIONAL={"bridge-events.log","telecom-hook.txt","telecom-state.txt","projection-state.txt"};
     static void build(File dir)throws IOException{
         File[] parts=dir.listFiles((d,n)->n.startsWith("events-")&&n.endsWith(".log"));
         if(parts==null)throw new IOException("Dossier de capture inaccessible");Arrays.sort(parts);
@@ -22,8 +23,7 @@ final class ReportArchive {
                     if(low.contains("audioalsa")||low.contains("audiobtcvsd")||low.contains("bt_sco_")||low.contains("capturehandler")){mtk.write(line);mtk.newLine();}
                 }
             }zip.closeEntry();mtk.flush();
-            File journal=new File(dir,"bridge-events.log");if(journal.isFile()){zip.putNextEntry(new ZipEntry("bridge-events.log"));Files.copy(journal.toPath(),zip);zip.closeEntry();}
-            File telecom=new File(dir,"telecom-hook.txt");if(telecom.isFile()){zip.putNextEntry(new ZipEntry("telecom-hook.txt"));Files.copy(telecom.toPath(),zip);zip.closeEntry();}
+            for(String n:OPTIONAL){File f=new File(dir,n);if(f.isFile()){zip.putNextEntry(new ZipEntry(n));Files.copy(f.toPath(),zip);zip.closeEntry();}}
             for(String n:REQUIRED){File f=new File(dir,n);
                 if(!f.isFile())throw new IOException("Fichier requis manquant : "+n);
                 zip.putNextEntry(new ZipEntry(n));Files.copy(f.toPath(),zip);zip.closeEntry();

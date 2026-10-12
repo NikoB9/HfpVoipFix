@@ -35,6 +35,8 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static boolean mtkModeApplied, mtkModePending, mtkScoApplied;
     private static int voipHooks;
     private static Class<?> controlService;
+    private static boolean outgoingHfpSelected;
+    private static long nextOutgoingAccountAttempt;
     private static String controlToken="none",controlResult="idle",controlDetail="none";
     private static long scoSequence;
     private static int negotiatedRate;
@@ -142,21 +144,45 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("getHeadsetClientService");service.getDeclaredMethod("getConnectedDevices");
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
-        event("HOOKS version=1.9.0 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.1 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
             String command=prop("debug.hfpvoipfix.ctrl","");
             if(!command.equals(previousControl)){previousControl=command;executeControl(command);}
-            synchronized(LOCK){monitorCommunication();}
+            synchronized(LOCK){monitorCommunication();ensureOutgoingHfpAccount();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.0 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.1 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
                 " call_active="+callStates.containsValue(0)+" sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
                 " outcome="+outcome+" disconnect="+disconnectHook+" comm="+commRequested+" busy="+busy()+" dirty="+((owner!=null&&!scos.contains(owner))||(commRequested&&!busy())||commCleanupUnconfirmed)+" route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks+" error="+lastError);}
         }},500,500);
+    }
+    private static void ensureOutgoingHfpAccount(){
+        if(!LabModes.telecom(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
+        long now=android.os.SystemClock.elapsedRealtime();
+        if(outgoingHfpSelected||now<nextOutgoingAccountAttempt||controlService==null)return;
+        nextOutgoingAccountAttempt=now+5000;
+        try{
+            Object service=XposedHelpers.callStaticMethod(controlService,"getHeadsetClientService");
+            if(service==null)return;
+            Object telecom=XposedHelpers.callMethod(service,"getSystemService","telecom");
+            Object accounts;
+            try{accounts=XposedHelpers.callMethod(telecom,"getCallCapablePhoneAccounts");}
+            catch(Throwable unavailable){accounts=XposedHelpers.callMethod(telecom,"getAllPhoneAccountHandles");}
+            if(!(accounts instanceof Iterable))throw new IllegalStateException("accounts_unavailable");
+            Object selected=null;int count=0;
+            for(Object account:(Iterable<?>)accounts){
+                Object component=XposedHelpers.callMethod(account,"getComponentName");
+                if(component!=null&&HfpAccountPolicy.matches(String.valueOf(XposedHelpers.callMethod(component,"getPackageName")),
+                    String.valueOf(XposedHelpers.callMethod(component,"getClassName")))){selected=account;count++;}
+            }
+            if(count!=1){event("TELECOM_DEFAULT result=waiting hfp_accounts="+count);return;}
+            XposedHelpers.callMethod(telecom,"setUserSelectedOutgoingPhoneAccount",selected);
+            outgoingHfpSelected=true;event("TELECOM_DEFAULT result=selected account=HFP");
+        }catch(Throwable t){event("TELECOM_DEFAULT result=retry reason="+t.getClass().getSimpleName());}
     }
     private static void executeControl(String raw){String[] p=CallCommand.parse(raw);if(p==null)return;
         synchronized(LOCK){if(p[0].equals(controlToken))return;controlToken=p[0];controlResult="refused";controlDetail="none";

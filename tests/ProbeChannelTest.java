@@ -25,7 +25,7 @@ public final class ProbeChannelTest {
         new Thread(()->{try(BufferedReader r=new BufferedReader(new InputStreamReader(shell.shellRead));PrintWriter w=new PrintWriter(shell.shellWrite,true);PrintWriter event=new PrintWriter(log.shellWrite,true)){String s;
             while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
                 else if(s.startsWith("setprop")){String token=s.split(" ")[2];current.set(token);w.println("OK"+token);Thread.sleep(50);
-                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.0 token="+current.get()+" busy=false");}
+                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.1 token="+current.get()+" busy=false");}
             }
         }catch(Exception ignored){}}).start();return new Pipe[]{shell,log};
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.1
+
+- Route D5 reception through Android Auto's active media projection mix while preserving the validated speaker route outside projection.
+- Select the single native HFP Client account as Telecom's outgoing default while D5 is active.
+- Add Telecom and projection device snapshots to diagnostic reports.
+- Bump the Android package to `versionName 1.9.1-lab` / `versionCode 64`; the persistent native runtime remains 1.9.0.
+
 ## 1.7.18-lab
 
 - D4 now logs both actual routes when MIUI changes them, reasserts the preferred speaker/SCO output routes briefly, and waits up to three continuous seconds for both paths to recover.

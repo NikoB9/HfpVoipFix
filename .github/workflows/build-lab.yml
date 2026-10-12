@@ -1,7 +1,7 @@
 name: Build HfpVoipLab
 on:
   push:
-    branches: [main, codex/1.9.0]
+    branches: [main, codex/1.9.1]
     paths: ['app/**', 'tools/**', 'tests/**', '.github/workflows/build-lab.yml', 'native-runtime/**']
   workflow_dispatch:
 permissions:
@@ -31,6 +31,10 @@ jobs:
           java -cp build-tests com.hfpvoipfix.BridgeRecoveryTest
           javac -encoding UTF-8 -cp build-tests -d build-tests app/src/main/java/com/hfpvoipfix/RelayPolicy.java tests/RelayPolicyTest.java
           java -cp build-tests com.hfpvoipfix.RelayPolicyTest
+          javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/ProjectionRoutePolicy.java tests/ProjectionRoutePolicyTest.java
+          java -cp build-tests com.hfpvoipfix.ProjectionRoutePolicyTest
+          javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/HfpAccountPolicy.java tests/HfpAccountPolicyTest.java
+          java -cp build-tests com.hfpvoipfix.HfpAccountPolicyTest
           mkdir -p build-tests
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/DuplexSchedule.java tests/DuplexScheduleTest.java
           java -cp build-tests com.hfpvoipfix.DuplexScheduleTest
@@ -74,17 +78,17 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.0.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.1.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.9.0-signed
+          name: HfpVoipLab-1.9.1-signed
           path: |
-            build-lab/HfpVoipLab-1.9.0.apk
+            build-lab/HfpVoipLab-1.9.1.apk
             build-lab/signature.txt
             build-lab/manifest.txt
             build-lab/alignment.txt
             build-signing-note.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.0.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.1.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'

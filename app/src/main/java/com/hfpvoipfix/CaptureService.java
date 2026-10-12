@@ -2,6 +2,7 @@ package com.hfpvoipfix;
 
 import android.app.*;
 import android.content.*;
+import android.media.*;
 import android.os.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -38,7 +39,7 @@ public final class CaptureService extends Service {
     }
     private static boolean relevant(String line){String l=line.toLowerCase(Locale.ROOT);
         return l.contains("hfpvoipfix")||l.contains("hfplabcapture")||l.contains("hfpclient")||l.contains("headsetclient")
-            ||l.contains("telecom-")||l.contains("audioalsa")||l.contains("audiobtcvsd")||l.contains("audioflinger")
+            ||l.contains("telecom-")||l.contains("callsmanager")||l.contains("newoutgoingcallintentbroadcaster")||l.contains("hfpclientconnservice")||l.contains("audioalsa")||l.contains("audiobtcvsd")||l.contains("audioflinger")
             ||l.contains("audiopolicy")||l.contains("audiosystem")||l.contains("audioservice")||l.contains("mediafocuscontrol")||l.contains("apm_")||l.contains("sco")||l.contains("btif_hf")||l.contains("hfp_enable");
     }
     @Override public void onCreate(){super.onCreate();alive=true;
@@ -78,7 +79,7 @@ public final class CaptureService extends Service {
             try{String probe=LabProbe.read(this);SessionStore.note(this,probe);
                 Matcher m=Pattern.compile("epoch=(\\d+)").matcher(probe);if(m.find())callEpoch=m.group(1);
             }catch(Exception e){fail(e.getMessage());}
-            StringBuilder sys=new StringBuilder("HfpVoipLab 1.9.0\n");
+            StringBuilder sys=new StringBuilder("HfpVoipLab 1.9.1\n");
             for(String cmd:new String[]{"getprop ro.build.fingerprint","getprop ro.build.version.release","getprop ro.product.device","getprop ro.board.platform","magisk -V","pidof com.android.bluetooth","getprop debug.hfpvoipfix.native_split","sha256sum /vendor/lib/hw/audio.primary.mt6785.so","sha256sum /vendor/etc/audio_policy_configuration.xml"}){
                 try{sys.append(cmd).append('\n').append(Privacy.clean(Root.command(cmd,4000,5))).append('\n');}catch(Exception e){sys.append("Indisponible : ").append(cmd).append('\n');}
             }
@@ -146,6 +147,19 @@ public final class CaptureService extends Service {
             try{append(item[0],"\n=== "+stage+" · "+System.currentTimeMillis()+" ===\n"+Privacy.clean(Root.command(item[1],450000,8)),8000000);}
             catch(Exception e){fail("Instantané "+stage+" : "+e.getMessage());}
         }
+        try{append("telecom-state.txt","\n=== "+stage+" · "+System.currentTimeMillis()+" ===\n"+Privacy.clean(Root.command("dumpsys telecom",500000,12)),2000000);}
+        catch(Exception e){fail("Instantané Telecom "+stage+" : "+e.getMessage());}
+        try{append("projection-state.txt","\n=== "+stage+" · "+System.currentTimeMillis()+" ===\n"+projectionState(),500000);}
+        catch(Exception e){fail("Instantané projection "+stage+" : "+e.getMessage());}
+    }
+    private String projectionState()throws Exception{
+        AudioManager am=(AudioManager)getSystemService(AUDIO_SERVICE);StringBuilder out=new StringBuilder();
+        String pid=Root.command("pidof com.google.android.projection.gearhead",100,3).trim();out.append("gearhead_active=").append(!pid.isEmpty()).append('\n');
+        for(int flags:new int[]{AudioManager.GET_DEVICES_OUTPUTS,AudioManager.GET_DEVICES_INPUTS})for(AudioDeviceInfo d:am.getDevices(flags))
+            out.append(flags==AudioManager.GET_DEVICES_OUTPUTS?"output":"input").append(" id=").append(d.getId()).append(" type=").append(d.getType())
+                .append(" address=").append(Privacy.clean(d.getAddress())).append(" name=").append(Privacy.clean(String.valueOf(d.getProductName())))
+                .append(" rates=").append(Arrays.toString(d.getSampleRates())).append('\n');
+        return out.toString();
     }
     private void closeReader(){if(logProcess!=null)logProcess.destroy();if(logThread!=null)try{logThread.join(2500);}catch(InterruptedException e){Thread.currentThread().interrupt();}}
     private void stop(){stopping=true;getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();
@@ -157,7 +171,7 @@ public final class CaptureService extends Service {
         snapshot("fin");
         try{
             SessionStore.finish(this);
-            save("summary.txt","HfpVoipLab 1.9.0\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
+            save("summary.txt","HfpVoipLab 1.9.1\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
                 "\nÉvénements retirés du milieu par rotation : "+dropped+"\nConservation : début (6 Mio) + cinq derniers segments (30 Mio).\n"+
                 "Les horodatages CALL et SCO servent au recoupement ; status=0 ne prouve pas un transport PCM.\n"+
                 "WBS reflète la négociation rapportée par Android, pas une mesure du codec sur le fil.\n"+
