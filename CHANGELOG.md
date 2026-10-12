@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.3
+
+- Keep the 1.9.0 local D5 audio path separate from experimental D6 car routing.
+- Add local/Android Auto relay buttons and a D5/D6 selector.
+- Resolve master SCO ports by identity and a distinct vehicle pair; detect dynamic projection mixes without the main-process PID.
+- Keep native runtime 1.9.0 unchanged; Android package versionCode 66.
+
 ## 1.9.1
 
 - Route D5 reception through Android Auto's active media projection mix while preserving the validated speaker route outside projection.

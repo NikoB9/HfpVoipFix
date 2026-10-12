@@ -8,6 +8,7 @@ public final class RelayService extends Service {
     static volatile boolean alive;
     private volatile boolean stopped;private Thread monitor;
     static boolean enabled(Context c){return c.getSharedPreferences("relay",0).getBoolean("enabled",false);}
+    static String mode(Context c){return LabModes.car(c.getSharedPreferences("relay",0).getString("mode","telecom_duplex"))?"telecom_aa":"telecom_duplex";}
     private void status(String s){getSharedPreferences("relay",0).edit().putString("status",s).apply();}
     @Override public void onCreate(){super.onCreate();alive=true;((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(new NotificationChannel("relay","Relais d’appels",NotificationManager.IMPORTANCE_LOW));}
     @Override public int onStartCommand(Intent i,int flags,int id){
@@ -24,15 +25,16 @@ public final class RelayService extends Service {
                 if(!RxBridgeService.alive){
                     if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED)throw new Exception("Ouvrir l’application et autoriser le microphone.");
                     if(channel==null)channel=new ProbeChannel();String p=channel.read();Map<String,String> v=RxGate.parse(p);
-                    if(!"1.9.2".equals(v.get("version")))throw new Exception("Installer la version du module puis redémarrer.");
+                    if(!"1.9.3".equals(v.get("version")))throw new Exception("Installer la version du module puis redémarrer.");
                     if(!"false".equals(v.get("busy"))){status("Appel en cours : reprise du relais après raccrochage.");}
                     else if(!"false".equals(v.get("dirty"))){status("Nettoyage audio incomplet : ouvrir le diagnostic.");}
                     else if(!RelayPolicy.prepare(p,enabled(this),RxBridgeService.alive,true)){status("Module d’appels incomplet : vérifier LSPosed puis redémarrer.");}
                     else{
-                        Root.command("setprop "+LabModes.PROP+" telecom_duplex",1000,4);
+                        String selected=mode(this);
+                        Root.command("setprop "+LabModes.PROP+" "+selected,1000,4);
                         getSharedPreferences("rx",0).edit().putBoolean("auto_paused",false).apply();
                         // Android 11 allows while-in-use FGS access for root/system callers.
-                        Root.command("am start-foreground-service --user 0 -n com.hfpvoipfix/.RxBridgeService --ez autonomous true --es mode telecom_duplex",4000,8);
+                        Root.command("am start-foreground-service --user 0 -n com.hfpvoipfix/.RxBridgeService --ez autonomous true --es mode "+selected,4000,8);
                         channel.close();channel=null;status("Relais lancé. Attente du Samsung et des appels.");
                     }
                 }

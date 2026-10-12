@@ -19,9 +19,9 @@ public final class ModeActivity extends Activity {
     private EditText phoneNumber;
     private boolean visible,working,pendingCapture,restoringSelection;
     private String requested="non vérifié";
-    private static final String[] PRIMARY_IDS={"soft_duplex","telecom_duplex"};
-    private static final String[] PRIMARY_NAMES={"D4 · Son + micro en continu","D5 · Appels via Téléphone (expérimental)"};
-    private static final String[] ADVANCED_IDS={"","observe","soft_rx","soft_tx","soft_duplex_test","voip","wbs","endpoints","bypass","bypass_comm","codec","rx","tx","bridge"};
+    private static final String[] PRIMARY_IDS={"telecom_duplex","telecom_aa"};
+    private static final String[] PRIMARY_NAMES={"D5 · Relais local (base 1.9.0)","D6 · Relais Android Auto"};
+    private static final String[] ADVANCED_IDS={""};
     private static final String[] RESULTS={"Non évalué","Silence","Bip continu","Retour microphone","Voix reçue mais déformée","Voix claire","Son uniquement au début ou à la fin","Autre"};
     private android.content.SharedPreferences prefs(){return getSharedPreferences("capture",0);}
     private void action(String s){startForegroundService(new Intent(this,CaptureService.class).setAction(s));}
@@ -37,39 +37,30 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HFP · 1.9.2",27);text(l,"Les appels du Samsung sur le Redmi",16);
+        text(l,"HFP · 1.9.3",27);text(l,"Les appels du Samsung sur le Redmi",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
         text(l,"Appels du Samsung, pilotés depuis le Redmi",21);
-        phoneNumber=new EditText(this);phoneNumber.setHint("Numéro à appeler sur le Samsung");phoneNumber.setInputType(android.text.InputType.TYPE_CLASS_PHONE);if(b!=null)phoneNumber.setText(b.getString("number",""));l.addView(phoneNumber);
-        button(l,"Appeler",()->controlCall("dial"));
-        button(l,"Répondre",()->controlCall("answer"));
-        button(l,"Raccrocher",()->controlCall("hangup"));
-        text(l,"D4 : utilisez ces boutons. D5 : activer aussi « Gestion des appels » et « Cadre du sous-système / Framework système » dans la portée LSPosed, redémarrer, puis utiliser Téléphone avec le compte Samsung.",14);
         text(l,"Choisir un parcours",21);
-        modes=new Spinner(this);modes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,PRIMARY_NAMES));modes.setSelection(Math.max(0,Math.min(PRIMARY_IDS.length-1,prefs().getInt("primary_choice",0))));l.addView(modes);restoringSelection=true;
+        modes=new Spinner(this);modes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,PRIMARY_NAMES));modes.setSelection(Math.max(0,Math.min(PRIMARY_IDS.length-1,LabModes.car(RelayService.mode(this))?1:0)));l.addView(modes);restoringSelection=true;
         details=new TextView(this);details.setTextSize(16);l.addView(details);
         modes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(!restoringSelection){BridgeJournal.write(getFilesDir(),"MODE_SELECTED choice="+PRIMARY_IDS[i]);prefs().edit().putInt("primary_choice",i).putInt("advanced_choice",0).apply();if(advancedModes!=null&&advancedModes.getSelectedItemPosition()!=0)advancedModes.setSelection(0);}showMode();}});
         apply=button(l,"Appliquer au prochain appel",this::applyMode);
-        text(l,"Appliquer le parcours hors appel, démarrer la session et attendre « prêt ». D4 maintient son et micro jusqu’au raccrochage. D5 ajoute le pont aux appels gérés par Téléphone. Régler le volume Média ; aucun son n’est enregistré.",15);
-        telecomDial=button(l,"Ouvrir Téléphone pour D5",()->{try{startActivity(new Intent(Intent.ACTION_DIAL));}catch(ActivityNotFoundException e){toast("Application Téléphone indisponible.");}});
+        text(l,"Appliquer le parcours hors appel, démarrer la session et attendre « prêt ». D5 utilise le son et le micro du Redmi. D6 ajoute les essais Android Auto. Régler le volume Média ; aucun son n’est enregistré.",15);
+        telecomDial=button(l,"Ouvrir Téléphone",()->{try{startActivity(new Intent(Intent.ACTION_DIAL));}catch(ActivityNotFoundException e){toast("Application Téléphone indisponible.");}});
         telecomAccounts=button(l,"Comptes d’appel · activer le Samsung pour D5",()->{try{startActivity(new Intent(android.telecom.TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS));}catch(ActivityNotFoundException e){toast("Ouvrir les réglages de Téléphone puis Comptes d’appel et activer le compte Samsung/HFP.");}});
 
         text(l,"Audio de l’appel",21);
         rxStatus=new TextView(this);l.addView(rxStatus);
         rxStop=button(l,"Arrêter immédiatement le pont",()->startService(new Intent(this,RxBridgeService.class).setAction("stop")));
         LinearLayout advanced=new LinearLayout(this);advanced.setOrientation(1);advanced.setVisibility(android.view.View.GONE);
-        button(root,"Diagnostic et outils avancés",()->advanced.setVisibility(advanced.getVisibility()==android.view.View.VISIBLE?android.view.View.GONE:android.view.View.VISIBLE));
+        button(root,"Collectes supplémentaires",()->advanced.setVisibility(advanced.getVisibility()==android.view.View.VISIBLE?android.view.View.GONE:android.view.View.VISIBLE));
         root.addView(advanced);
         l=advanced;
-        text(l,"Mode expérimental supplémentaire",21);
-        java.util.ArrayList<String> advancedNames=new java.util.ArrayList<>();advancedNames.add("Aucun · garder le parcours principal");for(int i=1;i<ADVANCED_IDS.length;i++)advancedNames.add(LabModes.NAMES[LabModes.index(ADVANCED_IDS[i])]);
-        advancedModes=new Spinner(this);advancedModes.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,advancedNames));advancedModes.setSelection(Math.max(0,Math.min(ADVANCED_IDS.length-1,prefs().getInt("advanced_choice",0))));l.addView(advancedModes);
-        advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(!restoringSelection)prefs().edit().putInt("advanced_choice",i).apply();showMode();}});
         text(l,"Transport SCO · diagnostic natif",21);
         transportStatus=new TextView(this);l.addView(transportStatus);
-        text(l,"LSPosed 1.9.2 et relais natif Magisk 1.9.0 requis pour D4/D5. Le diagnostic en quatre phases reste disponible ici. Android Auto utilise automatiquement son mix de projection lorsqu’il est actif ; le résultat audio et micro doit encore être validé sur l’autoradio.",15);
+        text(l,"D5 et D6 utilisent le runtime natif 1.9.0. D5 conserve le fonctionnement local ; D6 réserve les modifications Android Auto.",15);
         button(l,"1 · Préparer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
             .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le téléphone pendant cet essai. Le lab ne partage que des métadonnées techniques : pas de contenu ACL, numéro, adresse, clé ou son. Le réglage précédent sera sauvegardé. Désactiver/réactiver Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairé. MIUI peut ignorer ce réglage AOSP.")
             .setNegativeButton("Annuler",null).setPositiveButton("Préparer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandée. Désactiver puis réactiver Bluetooth dans ses réglages, attendre la reconnexion du Samsung, puis effectuer l’essai."));})).show());
@@ -119,7 +110,7 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.9.2 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.2 chargé après redémarrage.");
+            if(!p.contains("version=1.9.3 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.3 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -146,7 +137,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();BridgeJournal.write(getFilesDir(),"MODE_APPLY_REQUEST choice="+choice);
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.9.2 "))throw new IOException("Ancien module encore chargé : installer 1.9.2 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.9.3 "))throw new IOException("Ancien module encore chargé : installer 1.9.3 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");
@@ -224,7 +215,7 @@ public final class ModeActivity extends Activity {
         if(requestCode==160&&pendingCapture){pendingCapture=false;if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)action(CaptureService.START);else toast("La permission microphone est nécessaire au pont audio.");}
     }
     private final Runnable poll=new Runnable(){public void run(){showMode();if(visible)ui.postDelayed(this,1000);}};
-    @Override protected void onSaveInstanceState(Bundle out){out.putString("number",phoneNumber.getText().toString());super.onSaveInstanceState(out);}
+    @Override protected void onSaveInstanceState(Bundle out){if(phoneNumber!=null)out.putString("number",phoneNumber.getText().toString());super.onSaveInstanceState(out);}
     @Override protected void onResume(){super.onResume();visible=true;poll.run();}
     @Override protected void onPause(){visible=false;ui.removeCallbacks(poll);super.onPause();}
     @Override protected void onDestroy(){work.shutdown();super.onDestroy();}

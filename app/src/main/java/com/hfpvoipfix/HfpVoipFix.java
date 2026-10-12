@@ -145,7 +145,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("getHeadsetClientService");service.getDeclaredMethod("getConnectedDevices");
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
-        event("HOOKS version=1.9.2 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.3 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -154,15 +154,15 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();ensureOutgoingHfpAccount();ensureMasterAudio();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.2 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.3 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
-                " call_active="+callStates.containsValue(0)+" sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
+                " sco_in_id="+masterPortId(IN_SCO)+" sco_out_id="+masterPortId(OUT_SCO)+" call_active="+callStates.containsValue(0)+" sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
                 " outcome="+outcome+" disconnect="+disconnectHook+" comm="+commRequested+" busy="+busy()+" dirty="+((owner!=null&&!scos.contains(owner))||(commRequested&&!busy())||commCleanupUnconfirmed)+" route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks+" error="+lastError);}
         }},500,500);
     }
     private static void ensureOutgoingHfpAccount(){
-        if(!LabModes.telecom(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
+        if(!LabModes.car(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
         long now=android.os.SystemClock.elapsedRealtime();
         if(outgoingHfpSelected||now<nextOutgoingAccountAttempt||controlService==null)return;
         nextOutgoingAccountAttempt=now+5000;
@@ -186,7 +186,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         }catch(Throwable t){event("TELECOM_DEFAULT result=retry reason="+t.getClass().getSimpleName());}
     }
     private static void ensureMasterAudio(){
-        boolean active=LabModes.telecom(selected)&&telecomConfirmed&&calls.size()==1&&callStates.containsValue(0);
+        boolean active=LabModes.car(selected)&&telecomConfirmed&&calls.size()==1&&callStates.containsValue(0);
         Object key=active?calls.iterator().next():null;
         if(!scoConnectPolicy.request(key,active,scos.isEmpty(),SystemClock.elapsedRealtime()))return;
         try{
@@ -301,6 +301,12 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         try{String old=getWbs();if(old==null){event("UNAVAILABLE codec_write reason=previous_HAL_value_unreadable");return;}
             if(params("bt_wbs="+(wbs?"on":"off"))==0)previousWbs=old;
         }catch(Throwable t){error("codec_write",t);}
+    }
+    private static int masterPortId(int type){
+        if(!LabModes.car(selected)||scos.size()!=1)return -1;
+        try{List<Object> ports=new ArrayList<>();if(status(XposedHelpers.callStaticMethod(AudioManager.class,"listAudioDevicePorts",ports))!=0)return -1;
+            Object p=findPort(ports,type);return p==null?-1:status(XposedHelpers.callMethod(p,"id"));
+        }catch(Throwable ignored){return -1;}
     }
     private static boolean connectPort(int type){
         int current=status(XposedHelpers.callStaticMethod(audio(),"getDeviceConnectionState",type,address));

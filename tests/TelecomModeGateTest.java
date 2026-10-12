@@ -6,6 +6,7 @@ public final class TelecomModeGateTest {
  public static void main(String[] args){
   check(gate("telecom_duplex","begonia","11","1.7.22-one-boot",1,true,false,5,pkg,cls,3));
   check(gate("telecom_duplex","begonia","11","1.7.22-one-boot",1,true,false,3,pkg,cls,3));
+  check(gate("telecom_aa","begonia","11","1.9.0-persistent",1,true,false,5,pkg,cls,3));
   check(!gate("soft_duplex","begonia","11","1.7.22-one-boot",1,true,false,5,pkg,cls,3));
   check(!gate("telecom_duplex","other","11","1.7.22-one-boot",1,true,false,5,pkg,cls,3));
   check(!gate("telecom_duplex","begonia","12","1.7.22-one-boot",1,true,false,5,pkg,cls,3));
