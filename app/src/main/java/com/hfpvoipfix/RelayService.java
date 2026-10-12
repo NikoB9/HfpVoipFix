@@ -38,7 +38,7 @@ public final class RelayService extends Service {
                 }
                 Thread.sleep(3000);
             }catch(InterruptedException e){return;}catch(Exception e){status(String.valueOf(e.getMessage()));BridgeJournal.write(getFilesDir(),"RELAY_WAIT "+Privacy.clean(String.valueOf(e.getMessage())));if(channel!=null){channel.close();channel=null;}Thread.sleep(15000);}
-        }}catch(InterruptedException e){Thread.currentThread().interrupt();}finally{if(channel!=null)channel.close();}
+        }}catch(InterruptedException e){Thread.currentThread().interrupt();}finally{if(channel!=null)channel.close();if(!enabled(this)){try{Root.command("setprop "+LabModes.PROP+" observe",1000,4);}catch(Exception ignored){}if(!enabled(this)){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();}}}
     }
     @Override public IBinder onBind(Intent i){return null;}
     @Override public void onDestroy(){stopped=true;alive=false;if(monitor!=null)monitor.interrupt();super.onDestroy();}
