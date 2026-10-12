@@ -9,6 +9,9 @@ import java.util.*;
 
 /** Experimental SCO bridge, automatically prepared during capture; never stores PCM. */
 public final class RxBridgeService extends Service {
+    // Android 11 maps AUDIO_DEVICE_*_REMOTE_SUBMIX to type 25, but the public
+    // AudioDeviceInfo constant was exposed only in API 31.
+    private static final int TYPE_REMOTE_SUBMIX=25;
     public static volatile boolean alive,autonomousActive;
     private boolean autonomous;
     private boolean sessionEnabled(){return autonomous?RelayService.alive&&RelayService.enabled(this):CaptureService.alive&&getSharedPreferences("capture",0).getString("phase","").equals("running");}
@@ -76,7 +79,7 @@ public final class RxBridgeService extends Service {
     private boolean routed(AudioRecord record,AudioTrack track,int input,int output,int inputType,int outputType){AudioDeviceInfo a=record.getRoutedDevice(),b=track.getRoutedDevice();return a!=null&&b!=null&&(input<0||a.getId()==input)&&a.getType()==inputType&&(output<0||b.getId()==output)&&b.getType()==outputType;}
     private boolean androidAutoProjection(AudioManager am){
         int mixes=0;
-        for(AudioDeviceInfo d:am.getDevices(AudioManager.GET_DEVICES_OUTPUTS))if(d.getType()==AudioDeviceInfo.TYPE_REMOTE_SUBMIX){
+        for(AudioDeviceInfo d:am.getDevices(AudioManager.GET_DEVICES_OUTPUTS))if(d.getType()==TYPE_REMOTE_SUBMIX){
             mixes++;event("PROJECTION_OUTPUT id="+d.getId()+" address="+Privacy.clean(d.getAddress())+" rates="+Arrays.toString(d.getSampleRates()));
         }
         boolean gearhead=false;try{gearhead=!Root.command("pidof com.google.android.projection.gearhead",100,3).trim().isEmpty();}catch(Exception ignored){}
@@ -229,7 +232,7 @@ public final class RxBridgeService extends Service {
                     phaseNotice(phase,labels[phase],progressive?15:-1);now=phaseStart;
                 }
                 AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord==null?null:txRecord.getRoutedDevice(),to=txTrack==null?null:txTrack.getRoutedDevice();
-                int rxOutputId=carProjection?-1:speaker.getId(),rxOutputType=carProjection?AudioDeviceInfo.TYPE_REMOTE_SUBMIX:AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+                int rxOutputId=carProjection?-1:speaker.getId(),rxOutputType=carProjection?TYPE_REMOTE_SUBMIX:AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
                 boolean rxRoute=routed(rxRecord,rxTrack,scoIn.getId(),rxOutputId,AudioDeviceInfo.TYPE_BLUETOOTH_SCO,rxOutputType);
                 boolean micRoute=ti!=null&&(txInputId<0||ti.getId()==txInputId)&&ti.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC;
                 if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source=VOICE_COMMUNICATION policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
