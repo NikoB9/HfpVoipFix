@@ -19,6 +19,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static final Object LOCK=new Object();
     private static final Set<Object> calls=new HashSet<>();
     private static final Set<Object> scos=Collections.newSetFromMap(new IdentityHashMap<Object,Boolean>());
+    private static final Map<Object,Integer> callStates=new HashMap<>();
     private static final Map<Object,Integer> callIds=new HashMap<>();
     private static int nextCallId=1;
     private static final Map<Object,Object> callMachines=new HashMap<>();
@@ -75,10 +76,10 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                 @Override protected void beforeHookedMethod(MethodHookParam p){synchronized(LOCK){try{
                     Object c=p.args[0], key=XposedHelpers.callMethod(c,"getUUID");
                     int state=(Integer)XposedHelpers.callMethod(c,"getState");
-                    if(state!=7){latch();calls.add(key);callMachines.put(key,p.thisObject);}
+                    if(state!=7){latch();calls.add(key);callStates.put(key,state);callMachines.put(key,p.thisObject);}
                     if(!callIds.containsKey(key))callIds.put(key,nextCallId++);
                     event("CALL id="+callIds.get(key)+" state="+state+" mode="+selected+" ms="+System.currentTimeMillis());
-                    if(state==7){calls.remove(key);callIds.remove(key);callMachines.remove(key);finishCommunicationIfIdle();}
+                    if(state==7){calls.remove(key);callStates.remove(key);callIds.remove(key);callMachines.remove(key);finishCommunicationIfIdle();}
                 }catch(Throwable t){error("call_state",t);}}}
             });callHook=true;
         }catch(Throwable t){error("lifecycle_hook",t);}
@@ -89,7 +90,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                         synchronized(LOCK){
                             for(Object key:new ArrayList<>(callMachines.keySet()))if(callMachines.get(key)==p.thisObject){
                                 event("CALL id="+callIds.get(key)+" state=7 mode="+selected+" ms="+System.currentTimeMillis()+" reason=profile_disconnected");
-                                calls.remove(key);callIds.remove(key);callMachines.remove(key);
+                                calls.remove(key);callStates.remove(key);callIds.remove(key);callMachines.remove(key);
                             }
                             scos.remove(p.thisObject);
                             if(owner==p.thisObject)cleanup();
@@ -141,7 +142,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("getHeadsetClientService");service.getDeclaredMethod("getConnectedDevices");
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
-        event("HOOKS version=1.8.3 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.8.4 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -150,10 +151,10 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.8.3 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.8.4 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
-                " sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
+                " call_active="+callStates.containsValue(0)+" sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
                 " outcome="+outcome+" disconnect="+disconnectHook+" comm="+commRequested+" busy="+busy()+" dirty="+((owner!=null&&!scos.contains(owner))||(commRequested&&!busy())||commCleanupUnconfirmed)+" route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks+" error="+lastError);}
         }},500,500);
     }
