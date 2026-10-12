@@ -11,7 +11,7 @@ final class TelecomLoaderHook {
     static boolean accepts(String pkg){return "android".equals(pkg)||"system".equals(pkg)||"com.android.server.telecom".equals(pkg);}
     static synchronized void load(String pkg,ClassLoader loader){
         if(!accepts(pkg))return;
-        event("ENTRY package="+pkg+" version=1.8.4");
+        event("ENTRY package="+pkg+" version=1.9.0");
         if("com.android.server.telecom".equals(pkg)){TelecomAudioHook.install(loader);return;}
         if(installed)return;installed=true;
         try{

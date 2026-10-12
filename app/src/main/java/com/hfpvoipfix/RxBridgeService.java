@@ -9,7 +9,9 @@ import java.util.*;
 
 /** Experimental SCO bridge, automatically prepared during capture; never stores PCM. */
 public final class RxBridgeService extends Service {
-    public static volatile boolean alive;
+    public static volatile boolean alive,autonomousActive;
+    private boolean autonomous;
+    private boolean sessionEnabled(){return autonomous?RelayService.alive&&RelayService.enabled(this):CaptureService.alive&&getSharedPreferences("capture",0).getString("phase","").equals("running");}
     private volatile boolean stop, permitted;
     private volatile long received;
     private volatile String probe="",fatal="",audioIdentity,probeIdentity;
@@ -22,18 +24,19 @@ public final class RxBridgeService extends Service {
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(new NotificationChannel("rx","Pont audio expérimental",NotificationManager.IMPORTANCE_LOW));}
     @Override public int onStartCommand(Intent i,int flags,int id){
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        if(i!=null&&i.getBooleanExtra("autonomous",false)){autonomous=true;autonomousActive=true;}
         String mode=i==null?"":i.getStringExtra("mode");boolean tx="soft_tx".equals(mode);
         String title=tx?"HFP · essai micro vers Samsung":LabModes.duplex(mode)?"HFP · son + micro":"HFP · réception vers Redmi";
         startForeground(705,new Notification.Builder(this,"rx").setSmallIcon(android.R.drawable.ic_media_play).setContentTitle(title)
             .setContentText("Pont actif pendant la session").addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).setOngoing(true).build());
-        if(i==null||"stop".equals(i.getAction())){event("STOP_REQUEST source=service_action");getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();stop=true;permitted=false;if(worker==null)stopSelf();return START_NOT_STICKY;}
+        if(i==null||"stop".equals(i.getAction())){event("STOP_REQUEST source=service_action");if(autonomous)getSharedPreferences("relay",0).edit().putBoolean("enabled",false).apply();getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();stop=true;permitted=false;if(worker==null)stopSelf();return START_NOT_STICKY;}
         if(i.getBooleanExtra("automatic",false)&&getSharedPreferences("rx",0).getBoolean("auto_paused",false)){stopSelf();return START_NOT_STICKY;}
         if(worker==null){worker=new Thread(this::runBridge,"hfp-software-sco-bridge");worker.start();}return START_NOT_STICKY;
     }
-    private boolean allowed(){return !stop&&CaptureService.alive&&getSharedPreferences("capture",0).getString("phase","").equals("running")&&permitted&&(audioIdentity==null||audioIdentity.equals(probeIdentity))&&RxGate.fresh(SystemClock.elapsedRealtime(),received);}
-    private void watch(){boolean first=true;String activeIdentity=null,completedIdentity=null,mode=null;boolean continuous=false;long end=SystemClock.elapsedRealtime()+600000;
+    private boolean allowed(){return !stop&&sessionEnabled()&&permitted&&(audioIdentity==null||audioIdentity.equals(probeIdentity))&&RxGate.fresh(SystemClock.elapsedRealtime(),received);}
+    private void watch(){boolean first=true;String activeIdentity=null,completedIdentity=null,mode=null;boolean continuous=false;long end=autonomous?Long.MAX_VALUE:SystemClock.elapsedRealtime()+600000;
         ProbeChannel channel=null;int failures=0;
-        try{while(!stop&&CaptureService.alive&&getSharedPreferences("capture",0).getString("phase","").equals("running")){String p;
+        try{while(!stop&&sessionEnabled()){String p;
             try{
                 if(channel==null)channel=new ProbeChannel();
                 long began=SystemClock.elapsedRealtime();p=channel.read();
@@ -49,15 +52,15 @@ public final class RxBridgeService extends Service {
             probe=p;probeIdentity=RxGate.identity(p);received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.8.4".equals(values.get("version")))throw new IOException("Module 1.8.4 non chargé : redémarrage LSPosed nécessaire.");
-            if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
+            if(!"1.9.0".equals(values.get("version")))throw new IOException("Module 1.9.0 non chargé : redémarrage LSPosed nécessaire.");
+            if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
                 if(RxGate.ready(p)&&!RxGate.identity(p).equals(completedIdentity)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
                 else if("true".equals(values.get("busy"))&&!mode.equals(values.get("applied")))throw new IOException("L'appel n'utilise pas le mode armé.");
                 else if(SystemClock.elapsedRealtime()>end)throw new IOException("Armement expiré après 10 minutes.");
-                else {getSharedPreferences("rx",0).edit().putBoolean("armed",true).apply();status((mode.equals("soft_tx")?"D3 prêt":LabModes.telecom(mode)?"D5 prêt":LabModes.duplex(mode)?"D4 prêt":"D2 prêt")+" : appeler depuis le Redmi. Attente restante : "+((end-SystemClock.elapsedRealtime())/1000)+" s.");}
-            }else if(!RxGate.ready(p)||!activeIdentity.equals(RxGate.identity(p))){event("STOP reason=SCO_or_session_ended");permitted=false;if(continuous&&mode.equals(values.get("requested"))&&"false".equals(values.get("dirty"))){completedIdentity=activeIdentity;activeIdentity=null;end=SystemClock.elapsedRealtime()+600000;}else stop=true;}
+                else {getSharedPreferences("rx",0).edit().putBoolean("armed",true).apply();status((mode.equals("soft_tx")?"D3 prêt":LabModes.telecom(mode)?"D5 prêt":LabModes.duplex(mode)?"D4 prêt":"D2 prêt")+(autonomous?" : relais actif, en attente d’un appel.":" : appeler depuis le Redmi. Attente restante : "+((end-SystemClock.elapsedRealtime())/1000)+" s."));}
+            }else if(!RxGate.ready(p)||!activeIdentity.equals(RxGate.identity(p))){event("STOP reason=SCO_or_session_ended");permitted=false;if(continuous&&mode.equals(values.get("requested"))&&"false".equals(values.get("dirty"))){completedIdentity=activeIdentity;activeIdentity=null;end=autonomous?Long.MAX_VALUE:SystemClock.elapsedRealtime()+600000;}else stop=true;}
             Thread.sleep(1000);
         }}catch(Exception e){fatal=String.valueOf(e.getMessage());stop=true;permitted=false;event("ERROR handshake="+e.getClass().getSimpleName()+" detail="+Privacy.clean(fatal));}
         finally{if(channel!=null)channel.close();permitted=false;stop=true;}
@@ -73,7 +76,7 @@ public final class RxBridgeService extends Service {
     private boolean routed(AudioRecord record,AudioTrack track,int input,int output,int inputType,int outputType){AudioDeviceInfo a=record.getRoutedDevice(),b=track.getRoutedDevice();return a!=null&&b!=null&&(input<0||a.getId()==input)&&a.getType()==inputType&&b.getId()==output&&b.getType()==outputType;}
     private void runBridge(){AudioRecord record=null;AudioTrack track=null;
         try{
-            if(!CaptureService.alive||!getSharedPreferences("capture",0).getString("phase","").equals("running"))throw new IOException("Démarrer la capture avant le pont automatique.");
+            if(!sessionEnabled())throw new IOException("Démarrer la capture avant le pont automatique.");
             String requested=LabModes.valid(Root.command("getprop "+LabModes.PROP,1000,4).trim());
             if(!LabModes.softwareBridge(requested))throw new IOException("Choisir D2, D3, D4 ou D5 et appliquer le mode avant l’appel.");
             if(LabModes.duplex(requested)){boolean progressive="soft_duplex_test".equals(requested);watch=new Thread(this::watch,"hfp-sco-handshake");watch.start();do{audioIdentity=null;runDuplexBridge(progressive);}while(!progressive&&!stop);return;}
@@ -142,7 +145,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.8.4")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.0")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -262,5 +265,5 @@ public final class RxBridgeService extends Service {
         }
     }
     @Override public IBinder onBind(Intent i){return null;}
-    @Override public void onDestroy(){stop=true;permitted=false;alive=false;getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();super.onDestroy();}
+    @Override public void onDestroy(){stop=true;permitted=false;alive=false;autonomousActive=false;getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();super.onDestroy();}
 }

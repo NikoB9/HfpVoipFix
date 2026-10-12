@@ -1,0 +1,6 @@
+id=hfp_native_split_trial
+name=HFP relay native runtime
+version=1.9.0
+versionCode=3
+author=HfpVoipLab
+description=Persistent validated SCO/MIC split for exact begonia Android 11 ROM. Automatic compatibility checks; disable in Magisk and reboot to revert.

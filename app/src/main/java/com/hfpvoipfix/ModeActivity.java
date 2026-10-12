@@ -37,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HFP · 1.8.4",27);text(l,"Les appels du Samsung sur le Redmi",16);
+        text(l,"HFP · 1.9.0",27);text(l,"Les appels du Samsung sur le Redmi",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -69,7 +69,7 @@ public final class ModeActivity extends Activity {
         advancedModes.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int i,long id){if(!restoringSelection)prefs().edit().putInt("advanced_choice",i).apply();showMode();}});
         text(l,"Transport SCO · diagnostic natif",21);
         transportStatus=new TextView(this);l.addView(transportStatus);
-        text(l,"LSPosed 1.8.4 et patch Magisk 1.7.22 actif requis pour D4/D5. Le diagnostic en quatre phases reste disponible ici. Le patch s’arrête au prochain redémarrage : le réactiver avant de redémarrer pour un nouvel essai. Android Auto n’est pas encore validé.",15);
+        text(l,"LSPosed 1.9.0 et patch Magisk 1.7.22 actif requis pour D4/D5. Le diagnostic en quatre phases reste disponible ici. Le patch s’arrête au prochain redémarrage : le réactiver avant de redémarrer pour un nouvel essai. Android Auto n’est pas encore validé.",15);
         button(l,"1 · Préparer la trace HCI",()->new AlertDialog.Builder(this).setTitle("Activer temporairement la trace Bluetooth ?")
             .setMessage("Android pourra stocker un journal Bluetooth brut sensible sur le téléphone pendant cet essai. Le lab ne partage que des métadonnées techniques : pas de contenu ACL, numéro, adresse, clé ou son. Le réglage précédent sera sauvegardé. Désactiver/réactiver Bluetooth hors appel ensuite ; le lab ne supprime aucun appareil appairé. MIUI peut ignorer ce réglage AOSP.")
             .setNegativeButton("Annuler",null).setPositiveButton("Préparer",(d,w)->task(()->{TransportDiagnostic.setLogging(this,true);ui.post(()->toast("Trace demandée. Désactiver puis réactiver Bluetooth dans ses réglages, attendre la reconnexion du Samsung, puis effectuer l’essai."));})).show());
@@ -119,7 +119,7 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.8.4 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.8.4 chargé après redémarrage.");
+            if(!p.contains("version=1.9.0 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.0 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -146,7 +146,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();BridgeJournal.write(getFilesDir(),"MODE_APPLY_REQUEST choice="+choice);
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.8.4 "))throw new IOException("Ancien module encore chargé : installer 1.8.4 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.9.0 "))throw new IOException("Ancien module encore chargé : installer 1.9.0 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");
@@ -216,7 +216,7 @@ public final class ModeActivity extends Activity {
         if(firmware!=null){firmware.setEnabled(!bridging&&!CaptureService.alive&&!collecting&&!working);boolean fr=fs.equals("ready")&&!collecting&&new File(getFilesDir(),"HFP-Firmware.zip").isFile();firmwareShare.setEnabled(fr);firmwareInspect.setEnabled(fr&&!working);}
         boolean running=phase.equals("running"), starting=phase.equals("starting"), processing=phase.equals("processing");
         if(start!=null){start.setEnabled(!collecting&&!running&&!starting&&!processing&&!working);stop.setEnabled((running||starting||phase.equals("error"))&&!processing);snap.setEnabled(running);rate.setEnabled(running);}
-        if(apply!=null)apply.setEnabled(!collecting&&!working&&!starting&&!processing);
+        if(apply!=null)apply.setEnabled(!RelayService.enabled(this)&&!collecting&&!working&&!starting&&!processing);
         boolean ready=phase.equals("ready")&&new File(getFilesDir(),"HFP-Rapport.zip").isFile();if(share!=null){share.setEnabled(ready);inspect.setEnabled(ready&&!working);}
     }
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
