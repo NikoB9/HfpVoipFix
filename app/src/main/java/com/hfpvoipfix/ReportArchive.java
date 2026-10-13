@@ -8,7 +8,7 @@ import java.util.zip.*;
 /** Pure Java export path, also exercised by host tests. Never publishes a half-written ZIP. */
 final class ReportArchive {
     static final String[] REQUIRED={"summary.txt","sessions.json","audio-policy.txt","audio-flinger.txt","mediatek-audio.log","system-info.txt","errors.txt","audio-config.txt","audio-manager.txt"};
-    static final String[] OPTIONAL={"bridge-events.log","telecom-hook.txt","telecom-state.txt","projection-state.txt","capture-state.txt","bluetooth-state.txt"};
+    static final String[] OPTIONAL={"bridge-events.log","telecom-hook.txt","telecom-state.txt","projection-state.txt","capture-state.txt","bluetooth-state.txt","aa-diagnostic-state.txt","aa-events-0.log","aa-events-1.log","aa-events-2.log"};
     static void build(File dir)throws IOException{
         File[] parts=dir.listFiles((d,n)->n.startsWith("events-")&&n.endsWith(".log"));
         if(parts==null)throw new IOException("Dossier de capture inaccessible");Arrays.sort(parts);

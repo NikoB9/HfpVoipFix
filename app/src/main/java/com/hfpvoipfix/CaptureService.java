@@ -19,6 +19,7 @@ public final class CaptureService extends Service {
     private final ExecutorService work=Executors.newSingleThreadExecutor();
     private java.lang.Process logProcess;
     private Thread logThread,autoThread;
+    private CallDiagnostics callDiagnostics;
     private volatile boolean capturing,stopping;
     private volatile long count,scanned,dropped;
     private volatile String error="";
@@ -72,7 +73,7 @@ public final class CaptureService extends Service {
             final String marker="CAPTURE_MARKER_"+Long.toHexString(System.nanoTime());
             final CountDownLatch firstWrite=new CountDownLatch(1);
             capturing=true;
-            logProcess=new ProcessBuilder("su","-c","exec logcat -b main -v threadtime -T 1 HfpVoipFix:I HfpLabCapture:I Telecom:I TelecomFramework:I HeadsetClientService:D HfpClientConnService:D HeadsetService:D HeadsetStateMachine:D '*:S'").redirectErrorStream(true).start();
+            logProcess=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 1 HfpVoipFix:I HfpLabCapture:I Telecom:D TelecomFramework:D HeadsetClientService:D HfpClientConnService:D HeadsetService:D HeadsetStateMachine:D '*:S'").redirectErrorStream(true).start();
             logThread=new Thread(()->readLogs(marker,firstWrite),"hfp-log-reader");logThread.start();
             // su/logcat startup can lag behind the first marker. Re-emit until the
             // reader confirms it; -T 1 alone cannot guarantee that first write survives.
@@ -84,18 +85,19 @@ public final class CaptureService extends Service {
             if(firstWrite.getCount()>0)throw new IOException("Écriture témoin absente : capture non confirmée");
             if(!capturing)throw new IOException("logcat interrompu au démarrage");
             save("capture-state.txt","confirmed_at_ms="+System.currentTimeMillis()+"\nlogcat_confirmed=true\n");
+            callDiagnostics=new CallDiagnostics(getFilesDir());callDiagnostics.start();
             state("running","Capture confirmée. Préparation automatique du pont hors appel.");
             autoThread=new Thread(this::autoBridge,"hfp-auto-bridge");autoThread.start();
             try{String probe=LabProbe.read(this);SessionStore.note(this,probe);
                 Matcher m=Pattern.compile("epoch=(\\d+)").matcher(probe);if(m.find())callEpoch=m.group(1);
             }catch(Exception e){fail(e.getMessage());}
-            StringBuilder sys=new StringBuilder("HfpVoipLab 1.9.5\n");
+            StringBuilder sys=new StringBuilder("HfpVoipLab 1.9.6\n");
             for(String cmd:new String[]{"getprop ro.build.fingerprint","getprop ro.build.version.release","getprop ro.product.device","getprop ro.board.platform","magisk -V","pidof com.android.bluetooth","getprop debug.hfpvoipfix.native_split","sha256sum /vendor/lib/hw/audio.primary.mt6785.so","sha256sum /vendor/etc/audio_policy_configuration.xml"}){
                 try{sys.append(cmd).append('\n').append(Privacy.clean(Root.command(cmd,4000,5))).append('\n');}catch(Exception e){sys.append("Indisponible : ").append(cmd).append('\n');}
             }
             try{save("telecom-hook.txt",Privacy.clean(Root.command("grep -R -i -E 'HfpVoipFix|TELECOM_AUDIO|TELECOM_LOADER|com.android.server.telecom' /data/adb/lspd/log 2>/dev/null",200000,5)));}catch(Exception e){save("telecom-hook.txt","Diagnostic de chargement indisponible : "+e.getClass().getSimpleName());}
             save("system-info.txt",sys.toString());save("audio-config.txt",Privacy.clean(Root.config()));if(!RxBridgeService.alive)snapshot("début");
-        }catch(Exception e){stopping=true;fail("Démarrage : "+e.getMessage());capturing=false;closeReader();state("error",error);stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();}
+        }catch(Exception e){stopping=true;fail("Démarrage : "+e.getMessage());capturing=false;closeReader();closeCallDiagnostics();state("error",error);stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();}
     }
     private void autoBridge(){
         while(capturing&&!stopping){
@@ -174,20 +176,25 @@ public final class CaptureService extends Service {
         return out.toString();
     }
     private void closeReader(){if(logProcess!=null)logProcess.destroy();if(logThread!=null)try{logThread.join(2500);}catch(InterruptedException e){Thread.currentThread().interrupt();}}
+    private boolean closeCallDiagnostics(){if(callDiagnostics==null)return true;
+        try{callDiagnostics.close();return true;}catch(Exception e){fail("Arrêt diagnostic AA : "+e.getMessage());return false;}}
     private void stop(){stopping=true;getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();
         if(RxBridgeService.alive&&!RxBridgeService.autonomousActive){startService(new Intent(this,RxBridgeService.class).setAction("stop"));long until=SystemClock.elapsedRealtime()+6000;
             while(RxBridgeService.alive&&SystemClock.elapsedRealtime()<until)try{Thread.sleep(50);}catch(InterruptedException e){Thread.currentThread().interrupt();return;}
             if(RxBridgeService.alive){fail("Pont audio toujours en fermeture. Réessayer de terminer après son arrêt.");return;}
         }state("processing","Finalisation du rapport…");capturing=false;closeReader();
         if(logThread!=null&&logThread.isAlive()){fail("Lecteur non arrêté : export différé");state("error",error);stopForeground(true);return;}
+        if(!closeCallDiagnostics()){state("error",error);return;}
         snapshot("fin");
         try{
             SessionStore.finish(this);
-            save("summary.txt","HfpVoipLab 1.9.5\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
+            save("summary.txt","HfpVoipLab 1.9.6\nÉvénements écrits : "+count+"\nLignes examinées : "+scanned+
                 "\nÉvénements retirés du milieu par rotation : "+dropped+"\nConservation : début (6 Mio) + cinq derniers segments (30 Mio).\n"+
                 "Les horodatages CALL et SCO servent au recoupement ; status=0 ne prouve pas un transport PCM.\n"+
                 "WBS reflète la négociation rapportée par Android, pas une mesure du codec sur le fil.\n"+
                 "Les événements UNAVAILABLE signalent une stratégie non appliquée.\nDernière anomalie : "+error+
+                "\nDiagnostic AA : aa-events-0.log conserve le début ; aa-events-1/2.log conservent la fin, à trier par SEGMENT_STARTED. Limite 3 Mio. État et pertes dans aa-diagnostic-state.txt.\n"+
+                "Android Auto peut refuser sans publier de journal ; absence de ligne ne prouve pas absence de demande.\n"+
                 "\nMasquage ciblé : horodatages/PID/valeurs audio conservés. Numéros sans libellé susceptibles de rester visibles ; vérifier avant partage.\nLes appels commencés avant capture peuvent être incomplets.\n");
             for(String n:ReportArchive.REQUIRED)if(!file(n).exists())save(n,"Indisponible : donnée non capturée.\n");
             ReportArchive.build(getFilesDir());
@@ -196,5 +203,5 @@ public final class CaptureService extends Service {
         stopForeground(true);stopSelf();
     }
     @Override public IBinder onBind(Intent i){return null;}
-    @Override public void onDestroy(){alive=false;capturing=false;if(autoThread!=null)autoThread.interrupt();closeReader();work.shutdown();super.onDestroy();}
+    @Override public void onDestroy(){alive=false;capturing=false;if(autoThread!=null)autoThread.interrupt();closeReader();closeCallDiagnostics();work.shutdown();super.onDestroy();}
 }
