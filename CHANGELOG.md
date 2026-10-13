@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.5
+
+- Use a projected speech-channel experiment in D6 instead of bridging two SCO devices.
+- Scope Telecom vehicle-SCO suppression to one foreground non-emergency HFP D6 call.
+- Keep D5 audio, confirmed capture and native runtime 1.9.0; versionCode 68.
+
 ## 1.9.4
 
 - Confirm capture startup with repeated markers; isolate all session diagnostics and preserve failure metadata.

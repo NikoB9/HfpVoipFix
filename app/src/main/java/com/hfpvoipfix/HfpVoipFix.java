@@ -38,9 +38,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static boolean outgoingHfpSelected;
     private static long nextOutgoingAccountAttempt;
     private static final ScoConnectPolicy scoConnectPolicy=new ScoConnectPolicy();
-    private static final ScoConnectPolicy carAudioPolicy=new ScoConnectPolicy();
     private static Class<?> carService;
-    private static String lastCarState="";
     private static String lastNetworkState="";
     private static long nextNetworkRead;
     private static String controlToken="none",controlResult="idle",controlDetail="none";
@@ -151,16 +149,16 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
         try{carService=XposedHelpers.findClass("com.android.bluetooth.hfp.HeadsetService",cl);}catch(Throwable ignored){}
-        event("HOOKS version=1.9.4 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.5 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
             String command=prop("debug.hfpvoipfix.ctrl","");
             if(!command.equals(previousControl)){previousControl=command;executeControl(command);}
-            synchronized(LOCK){monitorCommunication();ensureOutgoingHfpAccount();ensureMasterAudio();ensureCarAudio();readCarNetwork();}
+            synchronized(LOCK){monitorCommunication();ensureOutgoingHfpAccount();ensureMasterAudio();readCarNetwork();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.4 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.5 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
                 " sco_in_id="+masterPortId(IN_SCO)+" sco_out_id="+masterPortId(OUT_SCO)+" call_active="+callStates.containsValue(0)+" sco="+scos.size()+" sco_seq="+scoSequence+" rate="+negotiatedRate+" bypass_ok="+bypassConfirmed+" telecom_ok="+telecomConfirmed+" soft_ports="+softwarePorts+
@@ -208,32 +206,6 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             Object result=XposedHelpers.callMethod(service,"connectAudio",device);
             event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" result="+(Boolean.TRUE.equals(result)?"queued":"rejected")+" transport_confirmed=false");
         }catch(Throwable t){event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" result=unavailable reason="+t.getClass().getSimpleName());}
-    }
-    private static void ensureCarAudio(){
-        boolean active=LabModes.car(selected)&&telecomConfirmed&&calls.size()==1&&callStates.containsValue(0);
-        Object key=active?calls.iterator().next():null;
-        if(!active){carAudioPolicy.request(null,false,false,SystemClock.elapsedRealtime());lastCarState="";return;}
-        try{
-            if(carService==null)throw new IllegalStateException("headset_service_missing");
-            Object service=XposedHelpers.callStaticMethod(carService,"getHeadsetService");
-            if(service==null)throw new IllegalStateException("headset_service_unavailable");
-            Object value=XposedHelpers.callMethod(service,"getConnectedDevices");
-            if(!(value instanceof List))throw new IllegalStateException("headset_devices_unavailable");
-            List<?> devices=(List<?>)value;
-            Object device=XposedHelpers.callMethod(service,"getActiveDevice");
-            Object machine=callMachines.get(key),master=machine==null?null:XposedHelpers.getObjectField(machine,"mCurrentDevice");
-            boolean distinct=devices.size()==1&&device!=null&&devices.get(0).equals(device)&&master!=null&&!master.equals(device);
-            int audio=device==null?-1:(Integer)XposedHelpers.callMethod(service,"getAudioState",device);
-            String state="connected_count="+devices.size()+" active_distinct="+distinct+" audio_state="+audio+" master_open="+(scos.size()==1);
-            if(!state.equals(lastCarState)){event("CAR_AUDIO_STATE "+state);lastCarState=state;}
-            // BluetoothHeadset (gateway side): audio states 10/11/12. Never
-            // bypass isScoAcceptable or change the active headset/route permissions.
-            Object manager=XposedHelpers.callMethod(service,"getSystemService","audio");
-            boolean normal=manager instanceof AudioManager&&((AudioManager)manager).getMode()==AudioManager.MODE_NORMAL;
-            boolean request=carAudioPolicy.request(key,true,distinct&&scos.size()==1&&audio==10&&normal,SystemClock.elapsedRealtime());
-            if(request){Object result=XposedHelpers.callMethod(service,"connectAudio",device);
-                event("CAR_AUDIO_REQUEST attempt="+carAudioPolicy.attempts()+" result="+(Boolean.TRUE.equals(result)?"queued":"rejected")+" transport_confirmed=false");}
-        }catch(Throwable t){String state="unavailable="+t.getClass().getSimpleName();if(!state.equals(lastCarState)){event("CAR_AUDIO_STATE "+state);lastCarState=state;}}
     }
     private static void readCarNetwork(){
         if(!LabModes.car(prop(LabModes.PROP,"observe"))){lastNetworkState="";return;}

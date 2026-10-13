@@ -1,7 +1,7 @@
 name: Build HfpVoipLab
 on:
   push:
-    branches: [main, codex/1.9.4]
+    branches: [main, codex/1.9.5]
     paths: ['app/**', 'tools/**', 'tests/**', '.github/workflows/build-lab.yml', 'native-runtime/**']
   workflow_dispatch:
 permissions:
@@ -81,17 +81,17 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.4.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.5.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.9.4-signed
+          name: HfpVoipLab-1.9.5-signed
           path: |
-            build-lab/HfpVoipLab-1.9.4.apk
+            build-lab/HfpVoipLab-1.9.5.apk
             build-lab/signature.txt
             build-lab/manifest.txt
             build-lab/alignment.txt
             build-signing-note.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.4.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.5.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'
