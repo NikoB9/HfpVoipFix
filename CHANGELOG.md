@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.4
+
+- Confirm capture startup with repeated markers; isolate all session diagnostics and preserve failure metadata.
+- Add bounded vehicle HFP audio requests and state monitoring in D6 only.
+- Read master/local network indicators without changing them; include Bluetooth diagnostics.
+- Keep D5 audio and native runtime 1.9.0 unchanged; Android versionCode 67.
+
 ## 1.9.3
 
 - Keep the 1.9.0 local D5 audio path separate from experimental D6 car routing.

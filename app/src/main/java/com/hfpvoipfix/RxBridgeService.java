@@ -53,7 +53,7 @@ public final class RxBridgeService extends Service {
             probe=p;probeIdentity=RxGate.identity(p);received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.9.3".equals(values.get("version")))throw new IOException("Module 1.9.3 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.4".equals(values.get("version")))throw new IOException("Module 1.9.4 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -153,7 +153,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.3")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.4")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -171,6 +171,11 @@ public final class RxBridgeService extends Service {
         AudioDeviceInfo scoIn=carBridge?CarEndpoints.master(am,AudioManager.GET_DEVICES_INPUTS,Integer.parseInt(ports.getOrDefault("sco_in_id","-1"))):unique(am,AudioManager.GET_DEVICES_INPUTS,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
         AudioDeviceInfo scoOut=carBridge?CarEndpoints.master(am,AudioManager.GET_DEVICES_OUTPUTS,Integer.parseInt(ports.getOrDefault("sco_out_id","-1"))):unique(am,AudioManager.GET_DEVICES_OUTPUTS,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
         AudioDeviceInfo[] vehicle=carBridge?CarEndpoints.vehicle(am,scoIn,scoOut):null;
+        if(carBridge&&vehicle==null){long waitUntil=SystemClock.elapsedRealtime()+5000;
+            event("D6_CAR_WAIT max_ms=5000");
+            while(allowed()&&vehicle==null&&SystemClock.elapsedRealtime()<waitUntil){Thread.sleep(250);vehicle=CarEndpoints.vehicle(am,scoIn,scoOut);}
+            if(!allowed())return;inventory(am);
+        }
         boolean projection=carBridge&&vehicle==null&&CarEndpoints.projection(am);
         if(carBridge&&vehicle==null&&!projection)throw new IOException("D6 : aucun endpoint véhicule ni mix de projection identifié.");
         AudioDeviceInfo mic=vehicle==null?null:vehicle[0];

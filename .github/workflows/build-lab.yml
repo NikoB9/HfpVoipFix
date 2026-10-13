@@ -1,7 +1,7 @@
 name: Build HfpVoipLab
 on:
   push:
-    branches: [main, codex/1.9.3]
+    branches: [main, codex/1.9.4]
     paths: ['app/**', 'tools/**', 'tests/**', '.github/workflows/build-lab.yml', 'native-runtime/**']
   workflow_dispatch:
 permissions:
@@ -41,6 +41,8 @@ jobs:
           java -cp build-tests com.hfpvoipfix.DuplexScheduleTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/ReportArchive.java tests/ReportArchiveTest.java
           java -cp build-tests com.hfpvoipfix.ReportArchiveTest
+          javac -encoding UTF-8 -cp build-tests -d build-tests app/src/main/java/com/hfpvoipfix/CaptureFiles.java tests/CaptureFilesTest.java
+          java -cp build-tests com.hfpvoipfix.CaptureFilesTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/FirmwareArchive.java tests/FirmwareArchiveTest.java
           java -cp build-tests com.hfpvoipfix.FirmwareArchiveTest
           javac -encoding UTF-8 -d build-tests app/src/main/java/com/hfpvoipfix/HciMetadata.java tests/HciMetadataTest.java
@@ -79,17 +81,17 @@ jobs:
           bash tools/build-lab.sh
           if [[ -n "${LAB_KEYSTORE:-}" ]]; then rm -f "$LAB_KEYSTORE"; fi
       - name: Signed release
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.3.apk') != '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.4.apk') != '' }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: HfpVoipLab-1.9.3-signed
+          name: HfpVoipLab-1.9.4-signed
           path: |
-            build-lab/HfpVoipLab-1.9.3.apk
+            build-lab/HfpVoipLab-1.9.4.apk
             build-lab/signature.txt
             build-lab/manifest.txt
             build-lab/alignment.txt
             build-signing-note.txt
           if-no-files-found: error
       - name: Explain missing signing identity
-        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.3.apk') == '' }}
+        if: ${{ hashFiles('build-lab/HfpVoipLab-1.9.4.apk') == '' }}
         run: echo 'Compilation verified. Install the two HFPLAB signing secrets to produce a signed release. No ephemeral key is generated.'
