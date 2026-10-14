@@ -14,10 +14,12 @@ final class Root {
       }catch(Exception ignored){}
     },"diag-root-read");
     reader.setDaemon(true);reader.start();
+    try{
     if(!p.waitFor(timeout,TimeUnit.SECONDS)){p.destroyForcibly();throw new IOException("Timeout: "+cmd);}
     reader.join(1000);
     if(p.exitValue()!=0)throw new IOException("Exit "+p.exitValue()+": "+text);
     synchronized(text){return text.toString()+(text.length()>=limit?"\n[LIMITE DE SORTIE ATTEINTE]\n":"");}
+    }finally{if(p.isAlive())p.destroyForcibly();}
   }
   static String check()throws Exception {
     String id=command("id -u",100,9).trim();

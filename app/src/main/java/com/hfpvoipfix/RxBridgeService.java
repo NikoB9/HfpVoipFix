@@ -48,19 +48,20 @@ public final class RxBridgeService extends Service {
                 event("PROBE_RETRY count="+failures+" detail="+Privacy.clean(String.valueOf(e.getMessage())));
                 if((activeIdentity!=null&&!continuous)||SystemClock.elapsedRealtime()>end)throw e;
                 if(activeIdentity!=null&&!BridgeRecovery.waiting(SystemClock.elapsedRealtime(),received,permitted,activeIdentity,probeIdentity))throw e;
-                status(("soft_tx".equals(mode)?"D3":"soft_duplex".equals(mode)?"D4":"D2")+" en attente : suivi Bluetooth indisponible, nouvelle tentative.");Thread.sleep(1000);continue;
+                status((LabModes.car(mode)?"D6":LabModes.telecom(mode)?"D5":"soft_tx".equals(mode)?"D3":"soft_duplex".equals(mode)?"D4":"D2")+" en attente : suivi Bluetooth indisponible, nouvelle tentative.");Thread.sleep(Math.min(15000,1000L*failures));continue;
             }
             probe=p;probeIdentity=RxGate.identity(p);received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(!"1.9.6".equals(values.get("version")))throw new IOException("Module 1.9.6 non chargé : redémarrage LSPosed nécessaire.");
+            if(LabModes.car(values.get("requested")))channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));
+            if(!"1.9.7".equals(values.get("version")))throw new IOException("Module 1.9.7 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
                 if(RxGate.ready(p)&&!RxGate.identity(p).equals(completedIdentity)){getSharedPreferences("rx",0).edit().putBoolean("armed",false).apply();activeIdentity=RxGate.identity(p);permitted=true;event("HANDSHAKE "+p);}
                 else if("true".equals(values.get("busy"))&&!mode.equals(values.get("applied")))throw new IOException("L'appel n'utilise pas le mode armé.");
                 else if(SystemClock.elapsedRealtime()>end)throw new IOException("Armement expiré après 10 minutes.");
-                else {getSharedPreferences("rx",0).edit().putBoolean("armed",true).apply();status((mode.equals("soft_tx")?"D3 prêt":LabModes.telecom(mode)?"D5 prêt":LabModes.duplex(mode)?"D4 prêt":"D2 prêt")+(autonomous?" : relais actif, en attente d’un appel.":" : appeler depuis le Redmi. Attente restante : "+((end-SystemClock.elapsedRealtime())/1000)+" s."));}
+                else {getSharedPreferences("rx",0).edit().putBoolean("armed",true).apply();status((mode.equals("soft_tx")?"D3 prêt":LabModes.car(mode)?"D6 prêt":LabModes.telecom(mode)?"D5 prêt":LabModes.duplex(mode)?"D4 prêt":"D2 prêt")+(autonomous?" : relais actif, en attente d’un appel.":" : appeler depuis le Redmi. Attente restante : "+((end-SystemClock.elapsedRealtime())/1000)+" s."));}
             }else if(!RxGate.ready(p)||!activeIdentity.equals(RxGate.identity(p))){event("STOP reason=SCO_or_session_ended");permitted=false;if(continuous&&mode.equals(values.get("requested"))&&"false".equals(values.get("dirty"))){completedIdentity=activeIdentity;activeIdentity=null;end=autonomous?Long.MAX_VALUE:SystemClock.elapsedRealtime()+600000;}else stop=true;}
             Thread.sleep(1000);
         }}catch(Exception e){fatal=String.valueOf(e.getMessage());stop=true;permitted=false;event("ERROR handshake="+e.getClass().getSimpleName()+" detail="+Privacy.clean(fatal));}
@@ -153,7 +154,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.6")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.7")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }

@@ -20,7 +20,7 @@ final class CallDiagnostics {
  private String error="none";
  CallDiagnostics(File directory){this.directory=directory;}
  void start()throws IOException{
-  running=true;write("DIAGNOSTIC_START ms="+System.currentTimeMillis()+" max_readers=6 first_and_tail_limit_bytes=3145728");
+  running=true;write("DIAGNOSTIC_START ms="+System.currentTimeMillis()+" max_readers=2 targeted_tags=true first_and_tail_limit_bytes=3145728");
   watcher=new Thread(()->{
    while(running){try{
     Map<Integer,String> found=CallDiagnosticPolicy.processes(Root.command("ps -A -o PID,NAME",100000,3));
@@ -30,18 +30,18 @@ final class CallDiagnostics {
      while(it.hasNext()){Map.Entry<Integer,Reader> e=it.next();if(!found.containsKey(e.getKey())||!e.getValue().thread.isAlive()){e.getValue().process.destroyForcibly();it.remove();}}
      for(Map.Entry<Integer,String> e:found.entrySet())if(running&&!readers.containsKey(e.getKey())){
       int attempt=attempts.getOrDefault(e.getKey(),0);if(attempt>=3)continue;
-      if(readers.size()>=6){write("READER_LIMIT pid="+e.getKey());break;}
+      if(readers.size()>=2)break;
       final int pid=e.getKey();
       attempts.put(pid,attempt+1);
-      java.lang.Process process=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 200 --pid="+pid+" '*:V'").redirectErrorStream(true).start();
+      java.lang.Process process=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 100 --pid="+pid+" HfpVoipFix:I GH.CallManager:I GH.CallViewController:I GH.LocalICSCallAdapter:I PhoneAppProvider:I Telecom:I AndroidRuntime:E '*:S'").redirectErrorStream(true).start();
       Thread thread=new Thread(()->read(pid,process),"hfp-aa-log-"+pid);
       readers.put(pid,new Reader(process,thread));threads.add(thread);
-      write("READER_START ms="+System.currentTimeMillis()+" pid="+pid+" name="+e.getValue()+" attempt="+(attempt+1)+" lookback_lines=200");thread.start();
+      write("READER_START ms="+System.currentTimeMillis()+" pid="+pid+" name="+e.getValue()+" attempt="+(attempt+1)+" lookback_lines=100");thread.start();
      }
     }
     status();
    }catch(Exception e){noteError(e);}
-   try{Thread.sleep(2000);}catch(InterruptedException e){Thread.currentThread().interrupt();break;}
+   try{for(int i=0;i<12&&running;i++)Thread.sleep(500);}catch(InterruptedException e){Thread.currentThread().interrupt();break;}
    }
   },"hfp-aa-process-watch");watcher.start();
  }
@@ -51,7 +51,7 @@ final class CallDiagnostics {
    if(running)write("READER_ENDED ms="+System.currentTimeMillis()+" pid="+pid+" logs_may_be_incomplete=true");
   }catch(Exception e){if(running)noteError(e);}
  }
- private synchronized void noteError(Exception e){error=e.getClass().getSimpleName();try{write("DIAGNOSTIC_ERROR type="+error);status();}catch(IOException ignored){}}
+ private synchronized void noteError(Exception e){error=e.getClass().getSimpleName();try{write("DIAGNOSTIC_ERROR type="+error+" detail="+String.valueOf(e.getMessage()));status();}catch(IOException ignored){}}
  private synchronized void write(String raw)throws IOException{
   String safe=Privacy.clean(raw);long n=safe.getBytes(StandardCharsets.UTF_8).length+1;
   if(writer==null||bytes+n>1048576){
@@ -65,7 +65,7 @@ final class CallDiagnostics {
  private synchronized void status()throws IOException{
   if(writer!=null)writer.flush();
   Files.write(new File(directory,"aa-diagnostic-state.txt").toPath(),("running="+running+"\nlines="+lines+"\ndiscarded_tail_lines="+discarded+"\nerror="+error+"\n"+
-   "scope=Android_Auto_and_dialer_main_system_per_PID\nprocess_poll_ms=2000\nfirst_and_tail_limit_bytes=3145728\n"+
+   "scope=Android_Auto_projection_and_dialer_targeted_tags\nprocess_poll_ms=6000\nmax_readers=2\nfirst_and_tail_limit_bytes=3145728\n"+
    "No matching app logs is not proof that no request was made. Release builds may omit logs.\n").getBytes(StandardCharsets.UTF_8));
  }
  void close()throws IOException{

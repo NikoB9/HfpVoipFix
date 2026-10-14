@@ -31,6 +31,11 @@ final class ProbeChannel implements AutoCloseable {
     private String next(BlockingQueue<String> q,long ms)throws Exception{if(broken)throw new IOException("Canal root/logcat fermé ou saturé.");return q.poll(ms,TimeUnit.MILLISECONDS);}
     static String matching(String s,String token){return s!=null&&s.contains("LAB epoch=")&&s.contains(" STATUS version=")&&s.contains(" token="+token+" ")?s:null;}
     String read()throws Exception{synchronized(REQUEST_LOCK){return readExclusive();}}
+    void publishAaReadiness(String proof)throws IOException{synchronized(REQUEST_LOCK){
+        if(!proof.matches("off|v1:[0-9]{1,16}:1:1:1"))throw new IOException("Invalid AA readiness proof");
+        if(broken)throw new IOException("Canal root fermé");
+        send("setprop debug.hfpvoipfix.aa_ready "+proof);
+    }}
     private String readExclusive()throws Exception{
         if(broken)throw new IOException("Suivi logcat interrompu.");
         String token=Long.toHexString(System.nanoTime());events.clear();
