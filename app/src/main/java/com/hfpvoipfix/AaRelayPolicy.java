@@ -7,7 +7,7 @@ final class AaRelayPolicy {
  static String proof(String status,long now){
   Map<String,String> v=RxGate.parse(status);
   try{long at=Long.parseLong(v.get("network_at"));
-   if("1.9.7".equals(v.get("version"))&&"telecom_aa".equals(v.get("requested"))&&"false".equals(v.get("dirty"))
+   if("1.9.8".equals(v.get("version"))&&"telecom_aa".equals(v.get("requested"))&&"false".equals(v.get("dirty"))
     &&"1".equals(v.get("master_connected"))&&"1".equals(v.get("master_service"))&&"true".equals(v.get("hfp_default"))
     &&"true".equals(v.get("route"))&&"true".equals(v.get("calls"))&&"true".equals(v.get("disconnect"))&&"3".equals(v.get("voip"))&&fresh(now,at))return "v1:"+at+":1:1:1";
   }catch(RuntimeException ignored){}return "off";

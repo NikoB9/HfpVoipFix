@@ -133,6 +133,19 @@ public class StatusIsolationTest {
   }finally{HeadsetClientService.release.countDown();}
  }
 }'''
+SOURCES['android/media/AudioManager.java']=SOURCES['android/media/AudioManager.java'].replace('public static int mode,','public static final int STREAM_VOICE_CALL=0;public int abandoned;public void abandonAudioFocusForCall(){abandoned++;}public static int mode,')
+SOURCES['com/hfpvoipfix/TelecomAudioHookTest.java']=SOURCES['com/hfpvoipfix/TelecomAudioHookTest.java'].replace('  enter.after(p);','''  XC_MethodHook focus=XposedHelpers.hooks.get("android.media.AudioManager#requestAudioFocusForCall");check(focus!=null);
+  android.media.AudioManager audio=new android.media.AudioManager();XC_MethodHook.MethodHookParam f=new XC_MethodHook.MethodHookParam();f.thisObject=audio;f.args=new Object[]{0,2};
+  focus.before(f);check(!f.returned&&audio.abandoned==0); // D5 keeps call focus
+  SystemProperties.mode="telecom_aa";focus.before(f);check(f.returned&&audio.abandoned==1);
+  f.returned=false;c.emergency=true;focus.before(f);check(!f.returned);c.emergency=false;
+  c.account.component.pkg="com.android.phone";focus.before(f);check(!f.returned);c.account.component.pkg="com.android.bluetooth";
+  m.mCallAudioManager.calls.add(new CallAudioModeStateMachine.Call());focus.before(f);check(!f.returned);m.mCallAudioManager.calls.removeIf(x->x!=c);
+  m.mCallAudioManager.foreground=null;focus.before(f);check(!f.returned);m.mCallAudioManager.foreground=c;
+  c.state=4;focus.before(f);check(!f.returned);c.state=5;
+  f.args[0]=2;focus.before(f);check(!f.returned);f.args[0]=0;
+  enter.after(p);focus.before(f);check(!f.returned);SystemProperties.mode="telecom_duplex";
+  enter.after(p);''')
 with tempfile.TemporaryDirectory(dir=ROOT/'tests') as d:
  d=pathlib.Path(d); src=d/'src';out=d/'classes';out.mkdir()
  for name,s in SOURCES.items():

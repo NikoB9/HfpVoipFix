@@ -6,7 +6,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedBridge;
 
-/** Telecom keeps call control/focus; only its scoped HFP VoIP setMode request is translated. */
+/** Scoped HFP audio-mode translation; D6 delegates playback focus to the projected player. */
 final class TelecomAudioHook {
     private static final ThreadLocal<Object> focusOwner=new ThreadLocal<>();
     private static boolean installed;
@@ -26,13 +26,28 @@ final class TelecomAudioHook {
                     @Override protected void afterHookedMethod(MethodHookParam p){focusOwner.remove();}
                 });
             }
+            // Android 11's call focus is locked. A projected player cannot acquire
+            // focus underneath it, even when Telecom's audio mode is NORMAL.
+            try{XposedHelpers.findAndHookMethod(AudioManager.class,"requestAudioFocusForCall",int.class,int.class,new XC_MethodHook(){
+                @Override protected void beforeHookedMethod(MethodHookParam p){
+                    Object machine=focusOwner.get();
+                    if(machine==null||!"telecom_aa".equals(prop(LabModes.PROP)))return;
+                    try{
+                        if(Integer.valueOf(AudioManager.STREAM_VOICE_CALL).equals(p.args[0])&&eligible(machine,3)){
+                            // An incoming call may still own the previous ringing lock.
+                            XposedHelpers.callMethod(p.thisObject,"abandonAudioFocusForCall");
+                            p.setResult(null);event("D6_FOCUS call_lock=suppressed projection_player_must_request=true");
+                        }
+                    }catch(Throwable t){event("D6_FOCUS unavailable="+t.getClass().getSimpleName());}
+                }
+            });}catch(Throwable t){event("D6_FOCUS hook_ready=false reason="+t.getClass().getSimpleName());}
             XposedHelpers.findAndHookMethod(AudioManager.class,"setMode",int.class,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     Object machine=focusOwner.get();if(machine==null||!Integer.valueOf(3).equals(p.args[0]))return;
                     try{if(eligible(machine,(Integer)p.args[0])){p.args[0]=AudioManager.MODE_NORMAL;event("OVERRIDE requested=3 applied=0 account=HFP single_call=true");}}
                     catch(Throwable t){event("UNAVAILABLE reason="+t.getClass().getSimpleName());}
                 }
-            });event("HOOK_READY version=1.9.7");CarProjectionHook.install(loader);
+            });event("HOOK_READY version=1.9.8");CarProjectionHook.install(loader);
         }catch(Throwable t){event("UNAVAILABLE install="+t.getClass().getSimpleName());}
     }
     private static boolean eligible(Object machine,int requested){

@@ -54,7 +54,7 @@ public final class RxBridgeService extends Service {
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
             if(LabModes.car(values.get("requested")))channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));
-            if(!"1.9.7".equals(values.get("version")))throw new IOException("Module 1.9.7 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.8".equals(values.get("version")))throw new IOException("Module 1.9.8 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -154,7 +154,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.7")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.8")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -184,10 +184,13 @@ public final class RxBridgeService extends Service {
         AudioFormat inFormat=new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_IN_MONO).build();
         AudioFormat outFormat=new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build();
         AudioRecord rxRecord=null,txRecord=null;AudioTrack rxTrack=null,txTrack=null;
+        ProjectionAudioFocus projectionFocus=null;
         try{
             // Phase 1 opens only the same capture/playback paths as standalone D2.
             rxRecord=new AudioRecord.Builder().setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
-            rxTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(carBridge?AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE:AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
+            AudioAttributes rxAttributes=new AudioAttributes.Builder().setUsage(carBridge?AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE:AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
+            if(carBridge){projectionFocus=new ProjectionAudioFocus(am,rxAttributes,this::event);projectionFocus.acquire();}
+            rxTrack=new AudioTrack.Builder().setAudioAttributes(rxAttributes).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
             if(carBridge)event("D6_PROJECTED_SPEECH usage=NAVIGATION_GUIDANCE experimental=true mic=local");
             if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation RX refusée.");
             if(!rxRecord.setPreferredDevice(scoIn)||(speaker!=null&&!rxTrack.setPreferredDevice(speaker)))throw new IOException("Routage RX refusé.");
@@ -198,7 +201,7 @@ public final class RxBridgeService extends Service {
             int phase=0;long routeLostSince=0;long phaseStart=0,lastStats=0,lastRxData=SystemClock.elapsedRealtime(),lastTxData=lastRxData;
             long rxRead=0,rxWritten=0,rxDropped=0,rxEnergy=0,rxWindow=0,txRead=0,txWritten=0,txEnergy=0,txWindow=0;
             int rxPeak=0,txPeak=0,txInputId=mic==null?-1:mic.getId();String lastRoutes="";
-            boolean paused=false;
+            boolean paused=false,focusPaused=false;
             while(!stop){
                 if(!allowed()){
                     if(!BridgeRecovery.waiting(SystemClock.elapsedRealtime(),received,permitted,audioIdentity,probeIdentity))break;
@@ -207,8 +210,13 @@ public final class RxBridgeService extends Service {
                     if(txRecord!=null)for(int drain=0;drain<10&&txRecord.read(txSamples,0,txSamples.length,AudioRecord.READ_NON_BLOCKING)>0;drain++){}
                     Arrays.fill(rxSamples,(short)0);Arrays.fill(txSamples,(short)0);Thread.sleep(100);continue;
                 }
-                if(paused){rxTrack.play();if(txTrack!=null)txTrack.play();paused=false;lastRxData=lastTxData=SystemClock.elapsedRealtime();routeLostSince=0;event("AUDIO_RESUME fresh_same_session=true");phaseNotice(phase,labels[phase],-1);}
+                if(paused){if(projectionFocus==null||projectionFocus.granted())rxTrack.play();if(txTrack!=null)txTrack.play();paused=false;lastRxData=lastTxData=SystemClock.elapsedRealtime();routeLostSince=0;event("AUDIO_RESUME fresh_same_session=true");phaseNotice(phase,labels[phase],-1);}
                 long now=SystemClock.elapsedRealtime();
+                if(projectionFocus!=null){
+                    boolean lost=!projectionFocus.granted();
+                    if(lost&&!focusPaused){rxTrack.pause();rxTrack.flush();focusPaused=true;event("D6_FOCUS playback=paused");}
+                    else if(!lost&&focusPaused){rxTrack.play();focusPaused=false;routeLostSince=0;event("D6_FOCUS playback=resumed");}
+                }
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
                 if(telecomBridge&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : Telecom a repris un mode audio incompatible avec le pont.");
                 int nextPhase=DuplexSchedule.next(phase,now-phaseStart,progressive);
@@ -243,14 +251,14 @@ public final class RxBridgeService extends Service {
                 boolean txRoute=txTrack!=null&&routed(txRecord,txTrack,txInputId,scoOut.getId(),micType,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
                 String routes="phase="+phase+" rx="+rxRoute+" mic="+micRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId());
                 if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);lastRoutes=routes;}
-                if(!progressive&&phase==3){if(rxRoute&&micRoute&&txRoute)routeLostSince=0;else if(routeLostSince==0)routeLostSince=now;else if(now-routeLostSince>3000)throw new IOException("Route duplex perdue depuis 3 secondes : exporter le rapport.");}
+                if(!progressive&&phase==3){if((rxRoute||focusPaused)&&micRoute&&txRoute)routeLostSince=0;else if(routeLostSince==0)routeLostSince=now;else if(now-routeLostSince>3000)throw new IOException("Route duplex perdue depuis 3 secondes : exporter le rapport.");}
                 // Observe route conflicts without retrying preferences or aborting the
                 // sequence. Never forward audio to an unexpected endpoint.
-                if(!rxRoute)rxTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
+                if(!rxRoute&&!focusPaused)rxTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
                 if(txTrack!=null&&!txRoute)txTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
                 int nr=rxRecord.read(rxSamples,0,rxSamples.length,AudioRecord.READ_NON_BLOCKING);if(nr<0)throw new IOException("AudioRecord RX.read="+nr);
                 if(nr>0){lastRxData=now;rxRead+=nr;for(int k=0;k<nr;k++){int v=rxSamples[k];rxEnergy+=(long)v*v;rxPeak=Math.max(rxPeak,Math.abs(v));}rxWindow+=nr;
-                    if(allowed()&&(carBridge?carRxRoute(rxRecord,rxTrack,scoIn,speaker):routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))){
+                    if(allowed()&&(projectionFocus==null||projectionFocus.granted())&&(carBridge?carRxRoute(rxRecord,rxTrack,scoIn,speaker):routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))){
                         int done=rxTrack.write(rxSamples,0,nr,AudioTrack.WRITE_NON_BLOCKING);if(done<0)throw new IOException("AudioTrack RX.write="+done);rxWritten+=done;rxDropped+=nr-done;
                     }else rxDropped+=nr;Arrays.fill(rxSamples,(short)0);
                 }
@@ -278,10 +286,12 @@ public final class RxBridgeService extends Service {
             event("DUPLEX_END progressive="+progressive+" phase="+phase+" elapsed_ms="+(SystemClock.elapsedRealtime()-phaseStart)+" rx_written="+rxWritten+" tx_written="+txWritten);
             if(!stop&&!RxGate.fresh(SystemClock.elapsedRealtime(),received)){event("STOP reason=stale_probe");throw new IOException("État Bluetooth périmé : test arrêté.");}
         }finally{
+            try{
             if(txTrack!=null){try{txTrack.pause();txTrack.flush();}catch(Exception ignored){}txTrack.release();}
             if(txRecord!=null){try{txRecord.stop();}catch(Exception ignored){}txRecord.release();}
             if(rxTrack!=null){try{rxTrack.pause();rxTrack.flush();}catch(Exception ignored){}rxTrack.release();}
             if(rxRecord!=null){try{rxRecord.stop();}catch(Exception ignored){}rxRecord.release();}
+            }finally{if(projectionFocus!=null)projectionFocus.close();}
         }
     }
     @Override public IBinder onBind(Intent i){return null;}
