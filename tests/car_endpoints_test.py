@@ -26,8 +26,8 @@ public class CarEndpointsTest {
  a.out=new AudioDeviceInfo[]{mo};check(CarEndpoints.vehicle(a,mi,mo)==null);
  a.out=new AudioDeviceInfo[]{mo,new AudioDeviceInfo(32,7,"MASTER")};refuses(()->CarEndpoints.vehicle(a,mi,mo));
  a.out=new AudioDeviceInfo[]{co,mo,new AudioDeviceInfo(66,7,"CAR2")};refuses(()->CarEndpoints.vehicle(a,mi,mo));
- a.out=new AudioDeviceInfo[]{new AudioDeviceInfo(53,25,"1506431339:ap:0mixp:0")};check(CarEndpoints.projection(a));
- a.out=new AudioDeviceInfo[]{new AudioDeviceInfo(53,25,"0")};check(!CarEndpoints.projection(a));
+ a.out=new AudioDeviceInfo[]{new AudioDeviceInfo(53,25,"1506431339:ap:0mixp:0")};check(CarEndpoints.projection(a));check(CarEndpoints.projectionOutput(a.out[0]));check(!CarEndpoints.projectionOutput(null));check(!CarEndpoints.projectionOutput(mo));
+ a.out=new AudioDeviceInfo[]{new AudioDeviceInfo(53,25,"0")};check(!CarEndpoints.projection(a));check(!CarEndpoints.projectionOutput(a.out[0]));
  check(LabModes.car("telecom_aa"));check(!LabModes.car("telecom_duplex"));check(LabModes.telecom("telecom_aa"));check(!LabModes.bypass("telecom_aa"));
  System.out.println("PASS master IDs, separate vehicle pair, ambiguous/missing/identity collision refusal, projection address and D5/D6 isolation");
  }}'''}

@@ -54,7 +54,7 @@ public final class RxBridgeService extends Service {
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
             if(LabModes.car(values.get("requested")))channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));
-            if(!"1.9.8".equals(values.get("version")))throw new IOException("Module 1.9.8 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.9".equals(values.get("version")))throw new IOException("Module 1.9.9 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -79,7 +79,7 @@ public final class RxBridgeService extends Service {
     private boolean carRxRoute(AudioRecord record,AudioTrack track,AudioDeviceInfo master,AudioDeviceInfo output){
         AudioDeviceInfo a=record.getRoutedDevice(),b=track.getRoutedDevice();
         return a!=null&&b!=null&&a.getId()==master.getId()&&a.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-            &&(output==null?b.getType()==CarEndpoints.REMOTE_SUBMIX:b.getId()==output.getId()&&b.getType()==output.getType());
+            &&(output==null?CarEndpoints.projectionOutput(b):b.getId()==output.getId()&&b.getType()==output.getType());
     }
     private void inventory(AudioManager am){for(int flags:new int[]{AudioManager.GET_DEVICES_INPUTS,AudioManager.GET_DEVICES_OUTPUTS})for(AudioDeviceInfo d:am.getDevices(flags))
         event("D6_DEVICE direction="+flags+" id="+d.getId()+" type="+d.getType()+" address="+Privacy.clean(d.getAddress())+" rates="+Arrays.toString(d.getSampleRates()));}
@@ -154,7 +154,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.8")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.9")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -250,7 +250,7 @@ public final class RxBridgeService extends Service {
                 if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source=VOICE_COMMUNICATION policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
                 boolean txRoute=txTrack!=null&&routed(txRecord,txTrack,txInputId,scoOut.getId(),micType,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
                 String routes="phase="+phase+" rx="+rxRoute+" mic="+micRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId());
-                if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);lastRoutes=routes;}
+                if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);if(carBridge)event("D6_ACTUAL_OUTPUT id="+(ro==null?-1:ro.getId())+" type="+(ro==null?-1:ro.getType())+" address="+(ro==null?"none":Privacy.clean(ro.getAddress()))+" registered_projection="+CarEndpoints.projectionOutput(ro));lastRoutes=routes;}
                 if(!progressive&&phase==3){if((rxRoute||focusPaused)&&micRoute&&txRoute)routeLostSince=0;else if(routeLostSince==0)routeLostSince=now;else if(now-routeLostSince>3000)throw new IOException("Route duplex perdue depuis 3 secondes : exporter le rapport.");}
                 // Observe route conflicts without retrying preferences or aborting the
                 // sequence. Never forward audio to an unexpected endpoint.

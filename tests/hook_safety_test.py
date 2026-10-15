@@ -98,8 +98,33 @@ SOURCES.update({'de/robv/android/xposed/XposedBridge.java': 'package de.robv.and
 SOURCES['android/os/SystemClock.java']='package android.os;public class SystemClock {public static long time=42;public static long elapsedRealtime(){return time;}}'
 SOURCES['com/android/bluetooth/hfp/HeadsetService.java']='package com.android.bluetooth.hfp;import java.util.*;import android.media.AudioManager;\npublic class HeadsetService {public static HeadsetService instance=new HeadsetService();public List<Object> devices=new ArrayList<>();public Object active;public int state=10,requests;public static HeadsetService getHeadsetService(){return instance;}public List<Object> getConnectedDevices(){return devices;}public Object getActiveDevice(){return active;}public int getAudioState(Object d){return state;}public Object getSystemService(String s){return new AudioManager();}public boolean connectAudio(Object d){requests++;return true;}}'
 SOURCES['com/android/server/telecom/CallAudioModeStateMachine.java']=SOURCES['com/android/server/telecom/CallAudioModeStateMachine.java'].replace('public java.util.Set<Call> getTrackedCalls(){return calls;}','public java.util.Set<Call> getTrackedCalls(){return calls;}public java.util.Set<Call> getCalls(){return calls;}')
-SOURCES['com/android/server/telecom/CallAudioRouteStateMachine.java']='package com.android.server.telecom;public class CallAudioRouteStateMachine {public static final int USER_SWITCH_EARPIECE=1101;public CallAudioModeStateMachine.Manager mCallsManager=new CallAudioModeStateMachine.Manager();public int message;public void setBluetoothOn(String s){}public void sendInternalMessage(int m){message=m;}}'
-SOURCES['com/hfpvoipfix/CarProjectionHookTest.java']='package com.hfpvoipfix;import de.robv.android.xposed.*;import android.os.SystemProperties;import com.android.server.telecom.*;\npublic class CarProjectionHookTest {\n static void check(boolean b){if(!b)throw new AssertionError();}\n static XC_MethodHook.MethodHookParam invoke(XC_MethodHook h,CallAudioRouteStateMachine m)throws Throwable{XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=m;p.args=new Object[]{"car"};h.before(p);return p;}\n public static void main(String[] a)throws Throwable{\n CarProjectionHook.install(CarProjectionHookTest.class.getClassLoader());XC_MethodHook h=XposedHelpers.hooks.get("com.android.server.telecom.CallAudioRouteStateMachine#setBluetoothOn");check(h!=null);\n CallAudioRouteStateMachine m=new CallAudioRouteStateMachine();CallAudioModeStateMachine.Call c=new CallAudioModeStateMachine.Call();m.mCallsManager.calls.add(c);m.mCallsManager.foreground=c;\n SystemProperties.mode="telecom_duplex";check(!invoke(h,m).returned&&m.message==0);\n SystemProperties.mode="telecom_aa";check(invoke(h,m).returned&&m.message==1101);\n c.emergency=true;check(!invoke(h,m).returned);c.emergency=false;\n c.account.component.pkg="com.android.phone";check(!invoke(h,m).returned);c.account.component.pkg="com.android.bluetooth";\n m.mCallsManager.foreground=null;check(!invoke(h,m).returned);m.mCallsManager.foreground=c;\n m.mCallsManager.calls.add(new CallAudioModeStateMachine.Call());check(!invoke(h,m).returned);m.mCallsManager.calls.removeIf(x->x!=c);\n for(int state:new int[]{1,2,3,4,5}){c.state=state;check(invoke(h,m).returned);}for(int state:new int[]{0,6,7,8}){c.state=state;check(!invoke(h,m).returned);}\n System.out.println("PASS actual D6 projection hook: D5/SIM/emergency/multiple/foreground exclusions and call-state routing");\n }}'
+# OEM-shaped route fixture deliberately has neither mCallsManager nor USER_SWITCH_EARPIECE.
+SOURCES['com/android/server/telecom/CallAudioRouteStateMachine.java']='''package com.android.server.telecom;
+public class CallAudioRouteStateMachine {
+ public CallAudioModeStateMachine.Manager mCallAudioManager=new CallAudioModeStateMachine.Manager();
+ public void setBluetoothOn(String s){}
+}'''
+SOURCES['com/android/server/telecom/CallAudioModeStateMachine.java']=SOURCES['com/android/server/telecom/CallAudioModeStateMachine.java'].replace('public Call foreground;','public Call foreground;public int route=-1,routeRequests;public boolean failRoute;public void setAudioRoute(int r,String address){if(failRoute)throw new IllegalStateException();if(address!=null)throw new AssertionError();route=r;routeRequests++;}')
+SOURCES['com/hfpvoipfix/CarProjectionHookTest.java']='''package com.hfpvoipfix;
+import de.robv.android.xposed.*;import android.os.SystemProperties;import com.android.server.telecom.*;
+public class CarProjectionHookTest {
+ static void check(boolean b){if(!b)throw new AssertionError();}
+ static XC_MethodHook.MethodHookParam invoke(XC_MethodHook h,CallAudioRouteStateMachine m)throws Throwable{XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=m;p.args=new Object[]{"car"};h.before(p);return p;}
+ public static void main(String[] a)throws Throwable{
+ CarProjectionHook.install(CarProjectionHookTest.class.getClassLoader());XC_MethodHook h=XposedHelpers.hooks.get("com.android.server.telecom.CallAudioRouteStateMachine#setBluetoothOn");check(h!=null);
+ CallAudioRouteStateMachine m=new CallAudioRouteStateMachine();CallAudioModeStateMachine.Manager manager=m.mCallAudioManager;
+ CallAudioModeStateMachine.Call c=new CallAudioModeStateMachine.Call();manager.calls.add(c);manager.foreground=c;
+ SystemProperties.mode="telecom_duplex";check(!invoke(h,m).returned&&manager.routeRequests==0);
+ SystemProperties.mode="telecom_aa";check(invoke(h,m).returned&&manager.route==1&&manager.routeRequests==1);
+ c.emergency=true;check(!invoke(h,m).returned);c.emergency=false;
+ c.account.component.pkg="com.android.phone";check(!invoke(h,m).returned);c.account.component.pkg="com.android.bluetooth";
+ manager.foreground=null;check(!invoke(h,m).returned);manager.foreground=c;
+ manager.calls.add(new CallAudioModeStateMachine.Call());check(!invoke(h,m).returned);manager.calls.removeIf(x->x!=c);
+ for(int state:new int[]{1,2,3,4,5}){c.state=state;check(invoke(h,m).returned);}for(int state:new int[]{0,6,7,8}){c.state=state;check(!invoke(h,m).returned);}
+ c.state=5;manager.failRoute=true;check(!invoke(h,m).returned);manager.failRoute=false;
+ m.mCallAudioManager=null;check(!invoke(h,m).returned);
+ System.out.println("PASS production D6 route API without OEM message fields, D5/SIM/emergency/multiple/foreground exclusions and route failure passthrough");
+ }}'''
 SOURCES['android/telephony/TelephonyManager.java']='package android.telephony;public class TelephonyManager {public static final int SIM_STATE_READY=5;}'
 SOURCES['com/hfpvoipfix/AaSimHookTest.java']='''package com.hfpvoipfix;
 import de.robv.android.xposed.*;import de.robv.android.xposed.callbacks.*;import android.os.SystemProperties;
@@ -146,6 +171,34 @@ SOURCES['com/hfpvoipfix/TelecomAudioHookTest.java']=SOURCES['com/hfpvoipfix/Tele
   f.args[0]=2;focus.before(f);check(!f.returned);f.args[0]=0;
   enter.after(p);focus.before(f);check(!f.returned);SystemProperties.mode="telecom_duplex";
   enter.after(p);''')
+SOURCES['com/android/bluetooth/hfpclient/HeadsetClientService.java']=SOURCES['com/android/bluetooth/hfpclient/HeadsetClientService.java'].replace('public static int dialed,answered,ended;','public static int dialed,answered,ended,audioState,connectRequests,cancelRequests;public int getAudioState(BluetoothDevice d){return audioState;}public boolean connectAudio(BluetoothDevice d){connectRequests++;return true;}public boolean disconnectAudio(BluetoothDevice d){cancelRequests++;return true;}')
+SOURCES['com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java']=SOURCES['com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java'].replace('public boolean mAudioWbs=true;','public boolean mAudioWbs=true;public boolean audioOn;public QueueHandler handler=new QueueHandler();public QueueHandler getHandler(){return handler;}public static class QueueHandler{public Runnable pending;public boolean post(Runnable r){pending=r;return true;}public void drain(){Runnable r=pending;pending=null;if(r!=null)r.run();}}public int getAudioState(Object d){return HeadsetClientService.audioState;}public boolean isAudioOn(){return audioOn;}public void sendMessageAtFrontOfQueue(int code){if(code!=4)throw new AssertionError();HeadsetClientService.cancelRequests++;}')
+SOURCES['com/hfpvoipfix/MasterAudioRecoveryTest.java']='''package com.hfpvoipfix;
+import java.lang.reflect.*;import java.util.*;import android.os.SystemClock;import com.android.bluetooth.hfpclient.*;
+public class MasterAudioRecoveryTest {
+ static Field field(String n)throws Exception{Field f=HfpVoipFix.class.getDeclaredField(n);f.setAccessible(true);return f;}
+ static void set(String n,Object v)throws Exception{field(n).set(null,v);}
+ static void check(boolean b){if(!b)throw new AssertionError();}
+ public static void main(String[] args)throws Exception{
+ Method ensure=HfpVoipFix.class.getDeclaredMethod("ensureMasterAudio");ensure.setAccessible(true);
+ HeadsetClientStateMachine sm=new HeadsetClientStateMachine();sm.mCurrentDevice=HeadsetClientService.devices.get(0);
+ Object key="call-a";Set<Object> calls=(Set<Object>)field("calls").get(null);Map<Object,Integer> states=(Map<Object,Integer>)field("callStates").get(null);Map<Object,Object> machines=(Map<Object,Object>)field("callMachines").get(null);
+ calls.add(key);states.put(key,0);machines.put(key,sm);set("selected","telecom_aa");set("telecomConfirmed",true);set("disconnectHook",true);set("routeHook",true);set("callHook",true);set("controlService",HeadsetClientService.class);
+ SystemClock.time=100;ensure.invoke(null);check(HeadsetClientService.connectRequests==0);
+ SystemClock.time=2100;ensure.invoke(null);check(HeadsetClientService.connectRequests==1);
+ HeadsetClientService.audioState=1;SystemClock.time=2200;ensure.invoke(null);
+ SystemClock.time=14199;ensure.invoke(null);check(HeadsetClientService.cancelRequests==0);
+ SystemClock.time=14200;ensure.invoke(null);check(HeadsetClientService.cancelRequests==0);sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
+ SystemClock.time=60000;ensure.invoke(null);check(HeadsetClientService.cancelRequests==1&&HeadsetClientService.connectRequests==1);
+ HeadsetClientService.audioState=0;ensure.invoke(null);check(HeadsetClientService.connectRequests==2);
+ HeadsetClientService.audioState=2;SystemClock.time=90000;ensure.invoke(null);check(HeadsetClientService.cancelRequests==1&&HeadsetClientService.connectRequests==2);
+ set("selected","telecom_duplex");HeadsetClientService.audioState=0;SystemClock.time=100000;ensure.invoke(null);check(HeadsetClientService.connectRequests==2);
+ set("selected","telecom_aa");states.put(key,7);SystemClock.time=110000;ensure.invoke(null);check(HeadsetClientService.connectRequests==2);
+ states.put(key,0);SystemClock.time=120000;ensure.invoke(null);Set<Object> scos=(Set<Object>)field("scos").get(null);scos.add(sm);SystemClock.time=130000;ensure.invoke(null);check(HeadsetClientService.connectRequests==2&&HeadsetClientService.cancelRequests==1);
+ scos.clear();ensure.invoke(null);HeadsetClientService.audioState=1;SystemClock.time=140000;ensure.invoke(null);SystemClock.time=152000;ensure.invoke(null);HeadsetClientService.audioState=2;sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
+ set("selected","telecom_duplex");ensure.invoke(null);set("selected","telecom_aa");HeadsetClientService.audioState=1;SystemClock.time=160000;ensure.invoke(null);SystemClock.time=172000;ensure.invoke(null);calls.clear();sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
+ System.out.println("PASS production master recovery: state-machine pending cancellation, actual disconnected event required, late callback/connected/owned ports/D5/ended-call preservation");
+ }}'''
 with tempfile.TemporaryDirectory(dir=ROOT/'tests') as d:
  d=pathlib.Path(d); src=d/'src';out=d/'classes';out.mkdir()
  for name,s in SOURCES.items():
@@ -153,6 +206,7 @@ with tempfile.TemporaryDirectory(dir=ROOT/'tests') as d:
  files=[str(p) for p in src.rglob('*.java')]+[str(ROOT/'app/src/main/java/com/hfpvoipfix'/n) for n in ('HfpVoipFix.java','LabModes.java','Privacy.java','CallCommand.java','HfpAccountPolicy.java','ScoConnectPolicy.java','AaSimHook.java','AaRelayPolicy.java','RxGate.java','TelecomAudioHook.java','CarProjectionGate.java','CarProjectionHook.java','TelecomModeGate.java','TelecomLoaderHook.java')]
  java=pathlib.Path(os.environ['JAVA_HOME'])/'bin'
  subprocess.run([str(java/'javac'),'-encoding','UTF-8','-d',str(out),*files],check=True)
+ subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.MasterAudioRecoveryTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.StatusIsolationTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.AaSimHookTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.CarProjectionHookTest'],check=True)

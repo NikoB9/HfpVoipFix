@@ -38,6 +38,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static boolean outgoingHfpSelected;
     private static long nextOutgoingAccountAttempt;
     private static final ScoConnectPolicy scoConnectPolicy=new ScoConnectPolicy();
+    private static int lastMasterAudioState=-99;
     private static Class<?> carService;
     private static String lastNetworkState="";
     private static long nextNetworkRead;
@@ -151,7 +152,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
         try{carService=XposedHelpers.findClass("com.android.bluetooth.hfp.HeadsetService",cl);}catch(Throwable ignored){}
-        event("HOOKS version=1.9.8 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.9 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -160,7 +161,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.8 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.9 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 networkStatus+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
@@ -199,7 +200,8 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         Object key,machine;
         synchronized(LOCK){boolean active=LabModes.car(selected)&&telecomConfirmed&&calls.size()==1&&callStates.containsValue(0);
             key=active?calls.iterator().next():null;
-            if(!scoConnectPolicy.request(key,active,scos.isEmpty(),SystemClock.elapsedRealtime()))return;
+            if(!active){scoConnectPolicy.action(null,false,true,-1,SystemClock.elapsedRealtime());lastMasterAudioState=-99;return;}
+            if(!scos.isEmpty()){scoConnectPolicy.action(key,true,false,2,SystemClock.elapsedRealtime());return;}
             machine=callMachines.get(key);}
         try{
             if(controlService==null||!disconnectHook||!routeHook||!callHook)throw new IllegalStateException("hooks_missing");
@@ -208,12 +210,37 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             if(!(devices instanceof List)||((List<?>)devices).size()!=1)throw new IllegalStateException("single_master_required");
             Object device=((List<?>)devices).get(0);
             if(machine==null||!device.equals(XposedHelpers.getObjectField(machine,"mCurrentDevice")))throw new IllegalStateException("call_device_mismatch");
-            int state=(Integer)XposedHelpers.callMethod(service,"getAudioState",device);
-            // BluetoothHeadsetClient audio states: DISCONNECTED=0, CONNECTING=1, CONNECTED=2.
-            if(state!=0){event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" result=waiting audio_state="+state);return;}
-            Object result=XposedHelpers.callMethod(service,"connectAudio",device);
-            event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" result="+(Boolean.TRUE.equals(result)?"queued":"rejected")+" transport_confirmed=false");
+            int state=(Integer)XposedHelpers.callMethod(service,"getAudioState",device),action;
+            synchronized(LOCK){
+                if(!LabModes.car(selected)||!telecomConfirmed||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty())return;
+                action=scoConnectPolicy.action(key,true,true,state,SystemClock.elapsedRealtime());
+                if(state!=lastMasterAudioState){lastMasterAudioState=state;event("MASTER_AUDIO observed_state="+state+" owned_sco=false attempt="+scoConnectPolicy.attempts());}
+            }
+            if(action==ScoConnectPolicy.WAIT)return;
+            boolean cancel=action==ScoConnectPolicy.CANCEL_PENDING;
+            Object result=cancel?cancelPendingMasterAudio(key,machine,device):XposedHelpers.callMethod(service,"connectAudio",device);
+            event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" action="+(cancel?"cancel_pending":"connect")+" result="+(Boolean.TRUE.equals(result)?"queued":"rejected")+" transport_confirmed=false");
         }catch(Throwable t){event("MASTER_AUDIO attempt="+scoConnectPolicy.attempts()+" result=unavailable reason="+t.getClass().getSimpleName());}
+    }
+    private static boolean cancelPendingMasterAudio(Object key,Object machine,Object device){
+        Object handler=XposedHelpers.callMethod(machine,"getHandler");
+        return Boolean.TRUE.equals(XposedHelpers.callMethod(handler,"post",(Runnable)()->{
+            try{
+                synchronized(LOCK){
+                    if(!LabModes.car(selected)||!telecomConfirmed||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty()||callMachines.get(key)!=machine){event("MASTER_AUDIO cancel_pending=skipped reason=session_changed");return;}
+                }
+                // Recheck on the Bluetooth state-machine thread. The service's
+                // disconnectAudio API refuses a pending connection (isAudioOn=false).
+                if(!device.equals(XposedHelpers.getObjectField(machine,"mCurrentDevice"))
+                    ||!Integer.valueOf(1).equals(XposedHelpers.callMethod(machine,"getAudioState",device))
+                    ||Boolean.TRUE.equals(XposedHelpers.callMethod(machine,"isAudioOn"))){event("MASTER_AUDIO cancel_pending=skipped reason=audio_state_changed");return;}
+                // AOSP Android 11 HeadsetClientStateMachine.DISCONNECT_AUDIO=4.
+                // Queue the normal handler at the front; never alter mAudioState or
+                // forge a native completion, and do not disconnect the HFP profile.
+                XposedHelpers.callMethod(machine,"sendMessageAtFrontOfQueue",4);
+                event("MASTER_AUDIO cancel_pending=sent native_disconnect_confirmed=false");
+            }catch(Throwable t){event("MASTER_AUDIO cancel_pending=unavailable reason="+t.getClass().getSimpleName());}
+        }));
     }
     private static void readCarNetwork(){
         if(!LabModes.car(prop(LabModes.PROP,"observe"))){networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";lastNetworkState="";return;}

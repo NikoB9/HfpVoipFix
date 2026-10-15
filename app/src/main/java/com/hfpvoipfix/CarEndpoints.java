@@ -26,11 +26,12 @@ final class CarEndpoints {
         }
         if(in==null)throw new IOException("D6 : paire audio véhicule incomplète.");return new AudioDeviceInfo[]{in,out};
     }
+    static boolean projectionOutput(AudioDeviceInfo d){
+        if(d==null||d.getType()!=REMOTE_SUBMIX)return false;
+        String a=d.getAddress();return a!=null&&a.matches("[0-9]+:ap:[0-9]+mixp:[0-9]+");
+    }
     static boolean projection(AudioManager am){
-        for(AudioDeviceInfo d:am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)){
-            String a=d.getAddress();
-            if(d.getType()==REMOTE_SUBMIX&&a!=null&&a.matches("[0-9]+:ap:[0-9]+mixp:[0-9]+"))return true;
-        }
+        for(AudioDeviceInfo d:am.getDevices(AudioManager.GET_DEVICES_OUTPUTS))if(projectionOutput(d))return true;
         return false;
     }
 }
