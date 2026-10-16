@@ -5,7 +5,7 @@ final class ProjectionFocusGate {
  static boolean allow(boolean liveTransport,String loser,int loserUsage,int loserContent,int loserGain,
                       int previousLoss,String winner,int winnerUsage,int winnerGain,int winnerFlags,
                       int loss,boolean forceDuck){
-  return liveTransport&&"com.hfpvoipfix".equals(loser)&&loserUsage==12&&loserContent==1&&loserGain==3
+  return liveTransport&&"com.hfpvoipfix".equals(loser)&&(loserUsage==12||loserUsage==1)&&loserContent==1&&loserGain==3
    &&previousLoss==0&&"com.google.android.projection.gearhead".equals(winner)
    &&winnerGain==2&&(winnerFlags&4)==0&&!forceDuck&&loss==-2
    // AA does not publish the attributes of its focus commands in the report.

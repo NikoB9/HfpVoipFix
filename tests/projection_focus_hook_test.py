@@ -53,6 +53,8 @@ public class ProjectionFocusHookTest {
  static FocusRequester aa(MediaFocusControl c,int usage){return new FocusRequester(c,"com.google.android.projection.gearhead",usage,2);}
  static void nativePoll(){NativeScoGuard.poll();}
  static void verifyPolicy(){
+  check(ProjectionFocusGate.allow(true,"com.hfpvoipfix",1,1,3,0,"com.google.android.projection.gearhead",0,2,1,-2,false),"MEDIA trial may share the same transient AA winner");
+  check(!ProjectionFocusGate.allow(true,"com.hfpvoipfix",1,1,3,0,"com.google.android.projection.gearhead",0,1,1,-1,false),"MEDIA trial respects permanent focus loss");
   check(ProjectionFocusGate.allow(true,"com.hfpvoipfix",12,1,3,0,"com.google.android.projection.gearhead",2,2,1,-2,false),"target policy");
   for(int u:new int[]{3,4,5,6,7,8,9,10,11,13,14,15,16,17})check(!ProjectionFocusGate.allow(true,"com.hfpvoipfix",12,1,3,0,"com.google.android.projection.gearhead",u,2,1,-2,false),"unrelated usage "+u);
   for(int gain:new int[]{1,3,4})check(!ProjectionFocusGate.allow(true,"com.hfpvoipfix",12,1,3,0,"com.google.android.projection.gearhead",2,gain,1,-2,false),"unrelated gain");
@@ -79,7 +81,7 @@ public class ProjectionFocusHookTest {
    if(kind.equals("permanent"))w.mFocusGainRequest=1;if(kind.equals("exclusive"))w.mFocusGainRequest=4;
    if(kind.equals("assistant"))w.mAttributes.usage=16;if(kind.equals("notification"))w.mAttributes.usage=5;
    if(kind.equals("locked"))w.mGrantFlags=4;if(kind.equals("other"))w.mPackageName="com.android.server.telecom";
-   if(kind.equals("D5"))p.put(LabModes.PROP,"telecom_duplex");if(kind.equals("wrong_usage"))l.mAttributes.usage=1;
+   if(kind.equals("D5"))p.put(LabModes.PROP,"telecom_duplex");if(kind.equals("wrong_usage"))l.mAttributes.usage=4;
    if(kind.equals("wrong_content"))l.mAttributes.content=2;if(kind.equals("wrong_gain"))l.mFocusGainRequest=1;
    if(kind.equals("previous"))l.mFocusLossReceived=-3;
    if(kind.equals("ports")){AudioManager.ports.clear();nativePoll();AudioManager.ports.add(new AudioManager.Port(60,0x80000008,"MASTER"));AudioManager.ports.add(new AudioManager.Port(64,0x20,"MASTER"));}
