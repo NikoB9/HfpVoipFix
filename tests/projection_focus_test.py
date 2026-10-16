@@ -16,10 +16,10 @@ files={
  public AudioFocusRequest build(){return r;}}
 }''',
 'android/media/AudioManager.java': '''package android.media;public class AudioManager {
- public static final int AUDIOFOCUS_GAIN=1,AUDIOFOCUS_GAIN_TRANSIENT=2,AUDIOFOCUS_REQUEST_GRANTED=1;
+ public static final int AUDIOFOCUS_GAIN=1,AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK=3,AUDIOFOCUS_REQUEST_GRANTED=1;
  public interface OnAudioFocusChangeListener{void onAudioFocusChange(int change);}
- public int result=1,requests,abandons;public AudioFocusRequest active;
- public int requestAudioFocus(AudioFocusRequest r){requests++;active=r;return result;}
+ public int result=1,requests,abandons;public boolean loseDuringRequest;public AudioFocusRequest active;
+ public int requestAudioFocus(AudioFocusRequest r){requests++;active=r;if(loseDuringRequest)r.listener.onAudioFocusChange(-1);return result;}
  public int abandonAudioFocusRequest(AudioFocusRequest r){if(r!=active)throw new AssertionError();abandons++;return 1;}
 }''',
 'com/hfpvoipfix/ProjectionFocusTest.java': '''package com.hfpvoipfix;import android.media.*;import java.io.*;public class ProjectionFocusTest {
@@ -27,12 +27,14 @@ files={
  public static void main(String[] args)throws Exception{
  AudioManager m=new AudioManager();AudioAttributes a=new AudioAttributes();java.util.List<String> events=new java.util.ArrayList<>();
  ProjectionAudioFocus f=new ProjectionAudioFocus(m,a,events::add);check(!f.granted());f.acquire();check(f.granted());
- check(m.active.attributes==a&&m.active.gain==2&&!m.active.delayed&&m.active.pauses);
+ check(m.active.attributes==a&&m.active.gain==3&&!m.active.delayed&&m.active.pauses);
  for(int change:new int[]{-1,-2,-3,0}){m.active.listener.onAudioFocusChange(change);check(!f.granted());m.active.listener.onAudioFocusChange(1);check(f.granted());}
  f.close();f.close();check(m.abandons==1&&!f.granted());m.active.listener.onAudioFocusChange(1);check(!f.granted());
  for(int result:new int[]{0,2}){m=new AudioManager();m.result=result;f=new ProjectionAudioFocus(m,a,events::add);
  try{f.acquire();throw new AssertionError("ungranted focus accepted");}catch(IOException expected){}finally{f.close();}
  check(m.requests==1&&m.abandons==1&&!f.granted());}
+ m=new AudioManager();m.loseDuringRequest=true;f=new ProjectionAudioFocus(m,a,events::add);f.acquire();check(!f.granted());f.close();
+ try{f.acquire();throw new AssertionError("closed focus reacquired");}catch(IOException expected){}check(m.requests==1);
  check(events.stream().anyMatch(e->e.contains("forwarding=false")));
  System.out.println("PASS production D6 focus: matching attributes, denial/delay refusal, all losses, regain, cleanup and late callbacks");
  }}'''

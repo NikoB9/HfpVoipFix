@@ -203,7 +203,7 @@ with tempfile.TemporaryDirectory(dir=ROOT/'tests') as d:
  d=pathlib.Path(d); src=d/'src';out=d/'classes';out.mkdir()
  for name,s in SOURCES.items():
   p=src/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
- files=[str(p) for p in src.rglob('*.java')]+[str(ROOT/'app/src/main/java/com/hfpvoipfix'/n) for n in ('HfpVoipFix.java','LabModes.java','Privacy.java','CallCommand.java','HfpAccountPolicy.java','ScoConnectPolicy.java','AaSimHook.java','AaRelayPolicy.java','RxGate.java','TelecomAudioHook.java','CarProjectionGate.java','CarProjectionHook.java','TelecomModeGate.java','TelecomLoaderHook.java')]
+ files=[str(p) for p in src.rglob('*.java')]+[str(ROOT/'app/src/main/java/com/hfpvoipfix'/n) for n in ('HfpVoipFix.java','LabModes.java','Privacy.java','CallCommand.java','HfpAccountPolicy.java','ScoConnectPolicy.java','AaSimHook.java','AaRelayPolicy.java','RxGate.java','TelecomAudioHook.java','CarProjectionGate.java','CarProjectionHook.java','TelecomModeGate.java','TelecomLoaderHook.java','NativeScoLease.java','NativeScoKeeper.java','NativeScoGuard.java')]
  java=pathlib.Path(os.environ['JAVA_HOME'])/'bin'
  subprocess.run([str(java/'javac'),'-encoding','UTF-8','-d',str(out),*files],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.MasterAudioRecoveryTest'],check=True)

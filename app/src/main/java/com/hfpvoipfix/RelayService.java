@@ -25,7 +25,7 @@ public final class RelayService extends Service {
                 if(!RxBridgeService.alive){
                     if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED)throw new Exception("Ouvrir l’application et autoriser le microphone.");
                     if(channel==null)channel=new ProbeChannel();String p=channel.read();Map<String,String> v=RxGate.parse(p);
-                    if(!"1.9.9".equals(v.get("version")))throw new Exception("Installer la version du module puis redémarrer.");
+                    if(!"1.9.10".equals(v.get("version")))throw new Exception("Installer la version du module puis redémarrer.");
                     if(!"false".equals(v.get("busy"))){status("Appel en cours : reprise du relais après raccrochage.");}
                     else if(!"false".equals(v.get("dirty"))){status("Nettoyage audio incomplet : ouvrir le diagnostic.");}
                     else if(!RelayPolicy.prepare(p,enabled(this),RxBridgeService.alive,true)){status("Module d’appels incomplet : vérifier LSPosed puis redémarrer.");}

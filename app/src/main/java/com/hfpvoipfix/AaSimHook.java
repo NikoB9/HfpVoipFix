@@ -20,7 +20,7 @@ final class AaSimHook {
        Log.i("HfpVoipFix","LAB AA_SIM_READINESS original="+original+" proxy_applied="+allow+" local_telephony_unchanged=true");}
      }catch(Throwable t){Log.i("HfpVoipFix","LAB AA_SIM_READINESS unavailable="+t.getClass().getSimpleName());}
     }
-   });Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=true version=1.9.9");
+   });Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=true version=1.9.10");
   }catch(Throwable t){Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=false reason="+t.getClass().getSimpleName());}
  }
 }

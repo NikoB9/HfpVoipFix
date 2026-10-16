@@ -53,8 +53,8 @@ public final class RxBridgeService extends Service {
             probe=p;probeIdentity=RxGate.identity(p);received=SystemClock.elapsedRealtime();
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
-            if(LabModes.car(values.get("requested")))channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));
-            if(!"1.9.9".equals(values.get("version")))throw new IOException("Module 1.9.9 non chargé : redémarrage LSPosed nécessaire.");
+            if(LabModes.car(values.get("requested"))){channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));channel.publishNativeSco(NativeScoLease.proof(p,SystemClock.elapsedRealtime()));}
+            if(!"1.9.10".equals(values.get("version")))throw new IOException("Module 1.9.10 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -65,7 +65,7 @@ public final class RxBridgeService extends Service {
             }else if(!RxGate.ready(p)||!activeIdentity.equals(RxGate.identity(p))){event("STOP reason=SCO_or_session_ended");permitted=false;if(continuous&&mode.equals(values.get("requested"))&&"false".equals(values.get("dirty"))){completedIdentity=activeIdentity;activeIdentity=null;end=autonomous?Long.MAX_VALUE:SystemClock.elapsedRealtime()+600000;}else stop=true;}
             Thread.sleep(1000);
         }}catch(Exception e){fatal=String.valueOf(e.getMessage());stop=true;permitted=false;event("ERROR handshake="+e.getClass().getSimpleName()+" detail="+Privacy.clean(fatal));}
-        finally{if(channel!=null)channel.close();permitted=false;stop=true;}
+        finally{if(channel!=null){try{if(LabModes.car(mode))channel.publishNativeSco("off");}catch(Exception ignored){}channel.close();}permitted=false;stop=true;}
     }
     private AudioDeviceInfo unique(AudioManager am,int flags,int type)throws IOException{
         AudioDeviceInfo result=null;for(AudioDeviceInfo d:am.getDevices(flags))if(d.getType()==type){if(result!=null)throw new IOException("Plusieurs périphériques audio candidats : essai refusé.");result=d;}
@@ -154,7 +154,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.9")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.10")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -194,7 +194,7 @@ public final class RxBridgeService extends Service {
             if(carBridge)event("D6_PROJECTED_SPEECH usage=NAVIGATION_GUIDANCE experimental=true mic=local");
             if(rxRecord.getState()!=AudioRecord.STATE_INITIALIZED||rxTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation RX refusée.");
             if(!rxRecord.setPreferredDevice(scoIn)||(speaker!=null&&!rxTrack.setPreferredDevice(speaker)))throw new IOException("Routage RX refusé.");
-            rxTrack.setVolume(0.35f);rxRecord.startRecording();rxTrack.play();
+            rxTrack.setVolume(0.35f);rxRecord.startRecording();if(projectionFocus==null||projectionFocus.granted())rxTrack.play();
             event("PLAYBACK_VOLUME rx=MEDIA index="+am.getStreamVolume(AudioManager.STREAM_MUSIC)+" max="+am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
             short[] rxSamples=new short[rate/50],txSamples=new short[rate/50],silence=new short[rate/50];
             String[] labels={"","Réception seule","Réception + capture micro","Duplex complet","TX arrêté, micro maintenu"};
@@ -221,6 +221,7 @@ public final class RxBridgeService extends Service {
                 if(telecomBridge&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : Telecom a repris un mode audio incompatible avec le pont.");
                 int nextPhase=DuplexSchedule.next(phase,now-phaseStart,progressive);
                 if(nextPhase!=phase){
+                    if(carBridge&&phase>0)event("D6_RX_WINDOW phase="+phase+" samples="+rxWindow+" rms="+(rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow))+" peak="+rxPeak+" focus="+(projectionFocus!=null&&projectionFocus.granted()));
                     event("PHASE_END phase="+phase+" elapsed_ms="+(phase==0?0:now-phaseStart)+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" tx_read="+txRead+" tx_written="+txWritten);
                     phase=nextPhase;
                     if(phase==5){event("SEQUENCE_COMPLETE phases=4");status("D4 : quatre phases terminées. Raccrocher puis exporter le rapport.");break;}
@@ -274,6 +275,7 @@ public final class RxBridgeService extends Service {
                     if(!progressive&&((rc!=null&&rc.isClientSilenced())||(tc!=null&&tc.isClientSilenced())))throw new IOException("Capture duplex rendue silencieuse par Android.");
                     event("PHASE_STATS "+routes+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" rx_rms="+(rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow))+" rx_peak="+rxPeak+" rx_head="+Integer.toUnsignedLong(rxTrack.getPlaybackHeadPosition())+" rx_underruns="+rxTrack.getUnderrunCount()+" rx_silenced="+(rc!=null&&rc.isClientSilenced())+" tx_read="+txRead+" tx_written="+txWritten+" tx_rms="+(txWindow==0?0:(long)Math.sqrt((double)txEnergy/txWindow))+" tx_peak="+txPeak+" tx_silenced="+(tc!=null&&tc.isClientSilenced())+" audio_mode="+am.getMode()+" media_volume="+am.getStreamVolume(AudioManager.STREAM_MUSIC));
                     phaseNotice(phase,labels[phase],progressive?Math.max(0,(int)((15000-(now-phaseStart)+999)/1000)):-1);
+                    if(carBridge&&focusPaused)status("D6 : sortie suspendue, priorité audio perdue. Exporter le rapport.");
                     lastStats=now;rxEnergy=rxWindow=txEnergy=txWindow=0;rxPeak=txPeak=0;
                 }
                 // A missing stream is logged instead of preventing phases 3/4 from

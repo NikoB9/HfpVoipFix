@@ -12,6 +12,7 @@ public final class ProbeChannelTest {
         Pipe shell=new Pipe(),log=new Pipe();
         new Thread(()->{try(BufferedReader r=new BufferedReader(new InputStreamReader(shell.shellRead));PrintWriter w=new PrintWriter(shell.shellWrite,true);PrintWriter event=new PrintWriter(log.shellWrite,true)){String s;
             while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
+                else if(s.startsWith("setprop debug.hfpvoipfix.sco_lease ")){String marker=s.substring(s.indexOf("echo SCOOK")+10,s.indexOf(" ||"));w.println((fail?"SCOFAIL":"SCOOK")+marker);}
                 else if(s.startsWith("setprop")){String token=s.split(" ")[2];w.println((fail?"FAIL":"OK")+token);
                     for(int i=0;i<1500;i++)event.println("Noise logcat message "+i);
                     event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.7.11 token=old busy=false");
@@ -24,16 +25,17 @@ public final class ProbeChannelTest {
         Pipe shell=new Pipe(),log=new Pipe();
         new Thread(()->{try(BufferedReader r=new BufferedReader(new InputStreamReader(shell.shellRead));PrintWriter w=new PrintWriter(shell.shellWrite,true);PrintWriter event=new PrintWriter(log.shellWrite,true)){String s;
             while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
+                else if(s.startsWith("setprop debug.hfpvoipfix.sco_lease ")){String marker=s.substring(s.indexOf("echo SCOOK")+10,s.indexOf(" ||"));w.println("SCOOK"+marker);}
                 else if(s.startsWith("setprop")){String token=s.split(" ")[2];current.set(token);w.println("OK"+token);Thread.sleep(50);
-                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.9 token="+current.get()+" busy=false");}
+                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.10 token="+current.get()+" busy=false");}
             }
         }catch(Exception ignored){}}).start();return new Pipe[]{shell,log};
     }
     public static void main(String[] args)throws Exception{
         Pipe[] p=start(false);String previous="";
-        try(ProbeChannel c=new ProbeChannel(p[0],p[1])){for(int i=0;i<100;i++){String line=c.read();if(line.contains("token=old")||line.equals(previous))throw new AssertionError("stale heartbeat");previous=line;}}
+        try(ProbeChannel c=new ProbeChannel(p[0],p[1])){c.publishNativeSco("v1:1000:42:1:60:64");c.publishNativeSco("off");try{c.publishNativeSco("v1:1:2:3:4:5;id");throw new AssertionError("shell injection accepted");}catch(IOException expected){}for(int i=0;i<100;i++){String line=c.read();if(line.contains("token=old")||line.equals(previous))throw new AssertionError("stale heartbeat");previous=line;}}
         if(!p[0].destroyed||!p[1].destroyed)throw new AssertionError("cleanup");
-        Pipe[] denied=start(true);try(ProbeChannel c=new ProbeChannel(denied[0],denied[1])){try{c.read();throw new AssertionError("setprop failure accepted");}catch(IOException expected){if(!expected.getMessage().contains("setprop"))throw expected;}}
+        Pipe[] denied=start(true);try(ProbeChannel c=new ProbeChannel(denied[0],denied[1])){try{c.publishNativeSco("off");throw new AssertionError("lease refusal accepted");}catch(IOException expected){if(!expected.getMessage().contains("refusée"))throw expected;}try{c.read();throw new AssertionError("setprop failure accepted");}catch(IOException expected){if(!expected.getMessage().contains("setprop"))throw expected;}}
         if(ProbeChannel.matching("LAB epoch=42 STATUS version=1.7.11 token=abc123 busy=false","abc")!=null)throw new AssertionError("prefix match");
         if(ProbeChannel.matching("LAB SOFT_BRIDGE HANDSHAKE STATUS version=1.7.11 token=abc busy=false","abc")!=null)throw new AssertionError("app replay matched");
         java.util.concurrent.atomic.AtomicReference<String> current=new java.util.concurrent.atomic.AtomicReference<>("");

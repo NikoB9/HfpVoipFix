@@ -14,27 +14,32 @@ final class ProjectionAudioFocus implements AutoCloseable {
     private final Events events;
     private final AudioFocusRequest request;
     private volatile boolean granted,closed;
+    private final Object lock=new Object();
+    private long callbacks;
 
     ProjectionAudioFocus(AudioManager manager,AudioAttributes attributes,Events events){
         this.manager=manager;this.events=events;
-        request=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+        request=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(attributes).setAcceptsDelayedFocusGain(false)
             .setWillPauseWhenDucked(true)
             .setOnAudioFocusChangeListener(change->{
-                if(closed)return;
-                granted=change==AudioManager.AUDIOFOCUS_GAIN;
+                synchronized(lock){if(closed)return;callbacks++;granted=change==AudioManager.AUDIOFOCUS_GAIN;}
                 events.write("D6_FOCUS change="+change+" forwarding="+granted);
             },new Handler(Looper.getMainLooper())).build();
     }
     void acquire()throws IOException{
+        long before;synchronized(lock){if(closed)throw new IOException("Priorité audio déjà libérée.");before=callbacks;}
         int result=manager.requestAudioFocus(request);
-        granted=result==AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
-        events.write("D6_FOCUS request="+result+" forwarding="+granted);
-        if(!granted)throw new IOException("D6 : priorité audio de projection refusée. Exporter le rapport.");
+        synchronized(lock){
+            if(result!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED)granted=false;
+            else if(callbacks==before&&!closed)granted=true;
+        }
+        events.write("D6_FOCUS gain=MAY_DUCK request="+result+" forwarding="+granted());
+        if(result!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED)throw new IOException("D6 : priorité audio de projection refusée. Exporter le rapport.");
     }
     boolean granted(){return granted&&!closed;}
     @Override public void close(){
-        if(closed)return;closed=true;granted=false;
+        synchronized(lock){if(closed)return;closed=true;granted=false;}
         int result=manager.abandonAudioFocusRequest(request);
         events.write("D6_FOCUS abandon="+result);
     }

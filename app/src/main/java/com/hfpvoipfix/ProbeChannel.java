@@ -36,6 +36,16 @@ final class ProbeChannel implements AutoCloseable {
         if(broken)throw new IOException("Canal root fermé");
         send("setprop debug.hfpvoipfix.aa_ready "+proof);
     }}
+    void publishNativeSco(String proof)throws IOException{synchronized(REQUEST_LOCK){
+        if(!proof.matches("off|v1:[0-9]{1,16}:[0-9]{1,16}:[0-9]{1,16}:[0-9]{1,8}:[0-9]{1,8}"))throw new IOException("Invalid native SCO lease");
+        if(broken)throw new IOException("Canal root fermé");
+        String token=Long.toHexString(System.nanoTime());
+        send("setprop debug.hfpvoipfix.sco_lease "+proof+" && echo SCOOK"+token+" || echo SCOFAIL"+token);
+        long end=System.nanoTime()+TimeUnit.SECONDS.toNanos(3);
+        try{while(System.nanoTime()<end){String line=next(replies,100);if(("SCOOK"+token).equals(line))return;if(("SCOFAIL"+token).equals(line))throw new IOException("Preuve SCO refusée par le système.");}}
+        catch(InterruptedException e){Thread.currentThread().interrupt();throw new IOException("Preuve SCO interrompue",e);}catch(IOException e){throw e;}catch(Exception e){throw new IOException("Preuve SCO indisponible",e);}
+        throw new IOException("Accusé de preuve SCO absent après 3 s.");
+    }}
     private String readExclusive()throws Exception{
         if(broken)throw new IOException("Suivi logcat interrompu.");
         String token=Long.toHexString(System.nanoTime());events.clear();
