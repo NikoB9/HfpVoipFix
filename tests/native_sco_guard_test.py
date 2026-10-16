@@ -53,9 +53,9 @@ public class NativeScoGuardTest {
  p.put(NativeScoLease.PROP,"off");poll("BT_SCO=off");lease();AudioSystem.status=-1;
  poll("BT_SCO=on");poll("BT_SCO=on");poll(null);AudioSystem.status=0;broker(b,false);poll("BT_SCO=on");
  p.put(LabModes.PROP,"telecom_duplex");poll("BT_SCO=off");poll(null);
- String status="STATUS version=1.9.10 requested=telecom_aa applied=telecom_aa status_at=6100 epoch=42 sco_seq=1 call_count=1 call_active=true sco=1 native_sco=true soft_ports=true telecom_ok=true dirty=false sco_in_id=60 sco_out_id=64";
+ String status="STATUS version=1.9.11 requested=telecom_aa applied=telecom_aa status_at=6100 epoch=42 sco_seq=1 call_count=1 call_active=true sco=1 native_sco=true soft_ports=true telecom_ok=true dirty=false sco_in_id=60 sco_out_id=64";
  check(NativeScoLease.proof(status,6100).equals("v1:6100:42:1:60:64"));
- for(String[] change:new String[][]{{"call_count=1","call_count=2"},{"sco=1 ","sco=2 "},{"call_active=true","call_active=false"},{"native_sco=true","native_sco=false"},{"soft_ports=true","soft_ports=false"},{"dirty=false","dirty=true"},{"telecom_ok=true","telecom_ok=false"},{"sco_in_id=60","sco_in_id=-1"},{"requested=telecom_aa","requested=telecom_duplex"},{"applied=telecom_aa","applied=idle"},{"version=1.9.10","version=1.9.9"}})check(NativeScoLease.proof(status.replace(change[0],change[1]),6100).equals("off"));
+ for(String[] change:new String[][]{{"call_count=1","call_count=2"},{"sco=1 ","sco=2 "},{"call_active=true","call_active=false"},{"native_sco=true","native_sco=false"},{"soft_ports=true","soft_ports=false"},{"dirty=false","dirty=true"},{"telecom_ok=true","telecom_ok=false"},{"sco_in_id=60","sco_in_id=-1"},{"requested=telecom_aa","requested=telecom_duplex"},{"applied=telecom_aa","applied=idle"},{"version=1.9.11","version=1.9.9"}})check(NativeScoLease.proof(status.replace(change[0],change[1]),6100).equals("off"));
  check(NativeScoLease.proof(status,6099).equals("off"));check(NativeScoLease.proof(status,11100).equals("off"));
  String proof="v1:6100:42:1:60:64";
  check(NativeScoLease.allow("telecom_aa","begonia","11","1.9.0-persistent",proof,6100));
