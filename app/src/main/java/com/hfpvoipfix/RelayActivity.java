@@ -1,18 +1,20 @@
 package com.hfpvoipfix;
 import android.app.*;import android.os.*;import android.content.*;import android.widget.*;
 public final class RelayActivity extends Activity {
- private TextView status;private final Handler ui=new Handler(Looper.getMainLooper());private boolean visible;private String pendingMode="telecom_duplex";private boolean pendingCompare;
+ private TextView status;private final Handler ui=new Handler(Looper.getMainLooper());private boolean visible;private String pendingMode="telecom_duplex";private boolean pendingCompare,pendingDiagnostic;
  private Button button(LinearLayout l,String s,Runnable action){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setOnClickListener(v->action.run());l.addView(b);return b;}
- @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(20*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);TextView title=new TextView(this);title.setText("Relais d’appels · 1.9.12");title.setTextSize(25);l.addView(title);status=new TextView(this);status.setTextSize(17);l.addView(status);
-  TextView help=new TextView(this);help.setText("Relais local : son et micro du Redmi. Relais AA : essais avec l’autoradio, en USB ou sans fil. La comparaison enchaîne quatre profils sur quatre appels : navigation, média, puis deux sources micro du Redmi. Aucun redémarrage entre les appels. Changez de relais hors appel.");l.addView(help);
+ @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(20*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);TextView title=new TextView(this);title.setText("Relais d’appels · 1.9.13");title.setTextSize(25);l.addView(title);status=new TextView(this);status.setTextSize(17);l.addView(status);
+  TextView help=new TextView(this);help.setText("Relais local : son et micro du Redmi. Relais AA : essais avec l’autoradio, en USB ou sans fil. La comparaison enchaîne quatre profils sur quatre appels : navigation, média, puis deux sources micro du Redmi. Le diagnostic de coupure teste huit étapes de 8 secondes dans un seul appel : navigation, ajout et retrait micro/TX, puis média. Gardez cet appel au moins 70 secondes. Changez de relais hors appel.");l.addView(help);
   button(l,"Activer le relais",()->enable("telecom_duplex"));button(l,"Activer le relais AA",()->enable("telecom_aa"));button(l,"Désactiver le relais",()->{getSharedPreferences("relay",0).edit().putBoolean("enabled",false).apply();startService(new Intent(this,RelayService.class).setAction("stop"));refresh();});
+  button(l,"Diagnostiquer la coupure AA · 1 appel",()->enable("telecom_aa",false,true));
   button(l,"Comparer les 4 essais AA",()->enable("telecom_aa",true));
   button(l,"Ouvrir Téléphone",()->{try{startActivity(new Intent(Intent.ACTION_DIAL));}catch(ActivityNotFoundException e){status.setText("Application Téléphone indisponible.");}});
   button(l,"Configuration initiale des comptes d’appel",()->{try{startActivity(new Intent(android.telecom.TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS));}catch(ActivityNotFoundException e){status.setText("Dans Téléphone, activer le compte Samsung/HFP et le choisir pour les appels.");}});
   button(l,"Options avancées et rapport",()->startActivity(new Intent(this,ModeActivity.class)));ScrollView scroll=new ScrollView(this);scroll.addView(l);setContentView(scroll);refresh();
  }
  private void enable(String mode){enable(mode,false);}
- private void enable(String mode,boolean compare){pendingMode=mode;pendingCompare=compare;if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},190);return;}
+ private void enable(String mode,boolean compare){enable(mode,compare,false);}
+ private void enable(String mode,boolean compare,boolean diagnostic){pendingMode=mode;pendingCompare=compare;pendingDiagnostic=diagnostic;if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},190);return;}
   new Thread(()->{try{
    java.util.Map<String,String> current=RxGate.parse(LabProbe.read(this));
    if(!"false".equals(current.get("busy"))||!"false".equals(current.get("dirty")))throw new java.io.IOException("Attendre la fin de l’appel et du nettoyage avant de préparer les essais.");
@@ -23,6 +25,7 @@ public final class RelayActivity extends Activity {
     getSharedPreferences("relay",0).edit().putString("mode",mode).apply();
     if(RxBridgeService.alive)startService(new Intent(this,RxBridgeService.class).setAction("reconfigure"));
    }
+   getSharedPreferences("aa_diagnostic",0).edit().putBoolean("enabled",diagnostic).putString("call","").apply();
    getSharedPreferences("aa_trials",0).edit().putBoolean("enabled",compare).putInt("index",0).putString("call","").putInt("assigned",-1).apply();
    getSharedPreferences("relay",0).edit().putString("mode",mode).putBoolean("enabled",true).apply();
    startForegroundService(new Intent(this,RelayService.class));ui.post(this::refresh);
@@ -32,5 +35,5 @@ public final class RelayActivity extends Activity {
  private final Runnable poll=new Runnable(){public void run(){refresh();if(visible)ui.postDelayed(this,2000);}};
  @Override protected void onResume(){super.onResume();visible=true;if(RelayService.enabled(this))startForegroundService(new Intent(this,RelayService.class));poll.run();}
  @Override protected void onPause(){visible=false;ui.removeCallbacks(poll);super.onPause();}
- @Override public void onRequestPermissionsResult(int n,String[] p,int[] r){super.onRequestPermissionsResult(n,p,r);if(n==190&&r.length>0&&r[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)enable(pendingMode,pendingCompare);}
+ @Override public void onRequestPermissionsResult(int n,String[] p,int[] r){super.onRequestPermissionsResult(n,p,r);if(n==190&&r.length>0&&r[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)enable(pendingMode,pendingCompare,pendingDiagnostic);}
 }

@@ -1,7 +1,7 @@
 package com.hfpvoipfix;
 public final class AaRelayPolicyTest {
  public static void main(String[] args){
-  String s="version=1.9.12 requested=telecom_aa dirty=false master_connected=1 master_service=1 hfp_default=true network_at=10000 route=true calls=true disconnect=true voip=3";
+  String s="version=1.9.13 requested=telecom_aa dirty=false master_connected=1 master_service=1 hfp_default=true network_at=10000 route=true calls=true disconnect=true voip=3";
   String proof=AaRelayPolicy.proof(s,12000);
   if(!proof.equals("v1:10000:1:1:1"))throw new AssertionError(proof);
   for(String[] c:new String[][]{{"telecom_aa","telecom_duplex"},{"dirty=false","dirty=true"},{"master_connected=1","master_connected=0"},{"master_service=1","master_service=0"},{"hfp_default=true","hfp_default=false"},{"route=true","route=false"},{"network_at=10000","network_at=0"},{"voip=3","voip=2"}})

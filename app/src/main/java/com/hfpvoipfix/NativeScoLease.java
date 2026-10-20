@@ -8,7 +8,7 @@ final class NativeScoLease {
   Map<String,String> v=RxGate.parse(status);
   try{
    long at=Long.parseLong(v.get("status_at")),epoch=Long.parseLong(v.get("epoch")),seq=Long.parseLong(v.get("sco_seq"));
-   if("1.9.12".equals(v.get("version"))&&"telecom_aa".equals(v.get("requested"))&&"telecom_aa".equals(v.get("applied"))
+   if("1.9.13".equals(v.get("version"))&&"telecom_aa".equals(v.get("requested"))&&"telecom_aa".equals(v.get("applied"))
     &&"1".equals(v.get("call_count"))&&"true".equals(v.get("call_active"))&&"1".equals(v.get("sco"))
     &&"true".equals(v.get("native_sco"))&&"true".equals(v.get("soft_ports"))&&"true".equals(v.get("telecom_ok"))
     &&"false".equals(v.get("dirty"))&&Integer.parseInt(v.get("sco_in_id"))>=0&&Integer.parseInt(v.get("sco_out_id"))>=0

@@ -38,20 +38,22 @@ final class AaProjectionReadHook {
    if(s==null||!s.session.equals(session)){if(states.size()>=8)states.clear();s=new Stats(session,now);states.put(record,s);}
    s.reads++;if(returned>0){s.units+=returned;s.level.add(args[0],args[0] instanceof java.nio.ByteBuffer?0:(Integer)args[1],returned,record.getAudioFormat());}
    if(now-s.start<2000)return;
-   final long reads=s.reads,units=s.units,inspected=s.level.inspected,rms=s.level.rms();final int peak=s.level.peak;
+   final long windowStart=s.start,windowEnd=now,reads=s.reads,units=s.units,inspected=s.level.inspected,rms=s.level.rms();final int peak=s.level.peak;
    final java.lang.ref.WeakReference<AudioRecord> ref=new java.lang.ref.WeakReference<>(record);
    states.put(record,new Stats(session,now));
-   logging.execute(()->emit(ref,session,reads,units,inspected,rms,peak,returned));
+   logging.execute(()->emit(ref,session,windowStart,windowEnd,reads,units,inspected,rms,peak,returned));
   }
  }
- private static void emit(java.lang.ref.WeakReference<AudioRecord> ref,String session,long reads,long units,long inspected,long rms,int peak,int returned){
+ private static void emit(java.lang.ref.WeakReference<AudioRecord> ref,String session,long windowStart,long windowEnd,long reads,long units,long inspected,long rms,int peak,int returned){
   try{
    AudioRecord record=ref.get();if(record==null)return;
    AudioDeviceInfo device=record.getRoutedDevice();
    String address=device==null?"none":device.getAddress();
    // Do not print arbitrary device addresses from another recorder.
    if(address==null||!address.matches("[0-9]+:ap:[0-9]+mixp:[0-9]+"))address="unidentified";
-   event("session="+session+" input_id="+(device==null?-1:device.getId())+" input_type="+(device==null?-1:device.getType())+" address="+address+
+   String silenced="unknown";
+   try{android.media.AudioRecordingConfiguration config=record.getActiveRecordingConfiguration();if(config!=null)silenced=String.valueOf(config.isClientSilenced());}catch(Throwable ignored){}
+   event("session="+session+" window_start_elapsed_ms="+windowStart+" window_end_elapsed_ms="+windowEnd+" reader_silenced="+silenced+" metadata_at_elapsed_ms="+SystemClock.elapsedRealtime()+" input_id="+(device==null?-1:device.getId())+" input_type="+(device==null?-1:device.getType())+" address="+address+
     " rate="+record.getSampleRate()+" encoding="+record.getAudioFormat()+" channels="+record.getChannelCount()+" reads="+reads+" returned_units="+units+
     " inspected="+inspected+" sampled_rms="+rms+" sampled_peak="+peak+" last_result="+returned+" content_identity_unverified=true");
   }catch(Throwable t){event("metadata_unavailable="+t.getClass().getSimpleName());}

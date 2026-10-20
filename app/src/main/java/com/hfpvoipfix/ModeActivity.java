@@ -37,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HFP · 1.9.12",27);text(l,"Les appels du Samsung sur le Redmi",16);
+        text(l,"HFP · 1.9.13",27);text(l,"Les appels du Samsung sur le Redmi",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -110,7 +110,7 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.9.12 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.12 chargé après redémarrage.");
+            if(!p.contains("version=1.9.13 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.13 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -137,7 +137,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();BridgeJournal.write(getFilesDir(),"MODE_APPLY_REQUEST choice="+choice);
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.9.12 "))throw new IOException("Ancien module encore chargé : installer 1.9.12 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.9.13 "))throw new IOException("Ancien module encore chargé : installer 1.9.13 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");

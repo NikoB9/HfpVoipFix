@@ -47,7 +47,7 @@ final class TelecomAudioHook {
                     try{if(eligible(machine,(Integer)p.args[0])){p.args[0]=AudioManager.MODE_NORMAL;event("OVERRIDE requested=3 applied=0 account=HFP single_call=true");}}
                     catch(Throwable t){event("UNAVAILABLE reason="+t.getClass().getSimpleName());}
                 }
-            });event("HOOK_READY version=1.9.12");CarProjectionHook.install(loader);
+            });event("HOOK_READY version=1.9.13");CarProjectionHook.install(loader);
         }catch(Throwable t){event("UNAVAILABLE install="+t.getClass().getSimpleName());}
     }
     private static boolean eligible(Object machine,int requested){

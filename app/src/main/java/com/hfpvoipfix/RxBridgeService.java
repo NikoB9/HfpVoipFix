@@ -17,6 +17,7 @@ public final class RxBridgeService extends Service {
     private volatile String probe="",fatal="",audioIdentity,probeIdentity;
     private String lastNotice="";
     private String aaTrialNotice="";
+    private boolean aaDiagnosticNotice;
     private Thread worker,watch;
     private static final String TAG="HfpVoipFix";
     private void status(String s){getSharedPreferences("rx",0).edit().putString("status",s).apply();}
@@ -55,7 +56,7 @@ public final class RxBridgeService extends Service {
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
             if(LabModes.car(values.get("requested"))){channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));channel.publishNativeSco(NativeScoLease.proof(p,SystemClock.elapsedRealtime()));}
-            if(!"1.9.12".equals(values.get("version")))throw new IOException("Module 1.9.12 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.13".equals(values.get("version")))throw new IOException("Module 1.9.13 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -91,16 +92,16 @@ public final class RxBridgeService extends Service {
             if(!LabModes.softwareBridge(requested))throw new IOException("Choisir D2, D3, D4 ou D5 et appliquer le mode avant l’appel.");
             if(LabModes.duplex(requested)){boolean progressive="soft_duplex_test".equals(requested);watch=new Thread(this::watch,"hfp-sco-handshake");watch.start();do{
                 audioIdentity=null;
-                try{runDuplexBridge(progressive);}
+                try{runDuplexBridge(progressive);
+                    if(LabModes.car(requested)&&getSharedPreferences("aa_diagnostic",0).getBoolean("enabled",false)){
+                        status("Diagnostic AA arrêté : raccrocher puis exporter le rapport.");waitForNoCall();
+                    }
+                }
                 catch(IOException trialError){
-                    if(!LabModes.car(requested)||!getSharedPreferences("aa_trials",0).getBoolean("enabled",false))throw trialError;
+                    if(!LabModes.car(requested)||(!getSharedPreferences("aa_trials",0).getBoolean("enabled",false)&&!getSharedPreferences("aa_diagnostic",0).getBoolean("enabled",false)))throw trialError;
                     event("D6_TRIAL_FAILED audio_closed=true detail="+Privacy.clean(String.valueOf(trialError.getMessage())));
                     status("Essai AA arrêté : "+trialError.getMessage()+" Raccrocher avant le prochain essai.");
-                    while(!stop&&sessionEnabled()){
-                        Map<String,String> v=RxGate.parse(probe);
-                        if(RxGate.fresh(SystemClock.elapsedRealtime(),received)&&"0".equals(v.get("call_count"))&&"0".equals(v.get("sco"))&&"false".equals(v.get("dirty")))break;
-                        Thread.sleep(100);
-                    }
+                    waitForNoCall();
                     if(!sessionEnabled())stop=true;
                 }
             }while(!progressive&&!stop);return;}
@@ -164,13 +165,21 @@ public final class RxBridgeService extends Service {
             stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();
         }
     }
+    private void waitForNoCall()throws InterruptedException{
+        while(!stop&&sessionEnabled()){
+            Map<String,String> v=RxGate.parse(probe);
+            if(RxGate.fresh(SystemClock.elapsedRealtime(),received)&&"0".equals(v.get("call_count"))&&"0".equals(v.get("sco"))&&"false".equals(v.get("dirty")))break;
+            Thread.sleep(100);
+        }
+    }
     private void phaseNotice(int phase,String label,int remaining){
         String message=remaining<0?"Duplex · "+(phase==3?"Son + micro actifs jusqu’au raccrochage":"Préparation audio…"):"Diagnostic D4 · phase "+phase+"/4 · "+label+" · "+remaining+" s";
+        if(aaDiagnosticNotice)message="Diagnostic AA · étape "+phase+"/8 · "+label+" · "+remaining+" s";
         if(!aaTrialNotice.isEmpty())message=aaTrialNotice+" · "+message;
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.12")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.13")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -188,6 +197,11 @@ public final class RxBridgeService extends Service {
         String trialCall=trialState.get("epoch")+":"+trialState.get("call_id");
         int assigned=carBridge?AaAudioTrial.select(trials.getBoolean("enabled",false),trials.getInt("index",0),trials.getString("call",""),trials.getInt("assigned",-1),trialCall):-1;
         boolean comparing=assigned>=0;
+        android.content.SharedPreferences diagnosticPrefs=getSharedPreferences("aa_diagnostic",0);
+        boolean diagnostic=carBridge&&diagnosticPrefs.getBoolean("enabled",false);
+        if(diagnostic&&!AaDiagnosticSchedule.canStart(true,comparing,diagnosticPrefs.getString("call",""),trialCall))
+            throw new IOException("Diagnostic AA déjà lancé dans cet appel ou comparaison incompatible : raccrocher.");
+        aaDiagnosticNotice=diagnostic;
         if(carBridge&&!comparing&&trials.getInt("index",0)>=AaAudioTrial.COUNT)trials.edit().putBoolean("enabled",false).apply();
         int trialIndex=comparing?assigned:0;
         AaAudioTrial profile=AaAudioTrial.at(trialIndex);
@@ -230,6 +244,7 @@ public final class RxBridgeService extends Service {
             if(!rxRecord.setPreferredDevice(scoIn)||(speaker!=null&&!rxTrack.setPreferredDevice(speaker)))throw new IOException("Routage RX refusé.");
             rxTrack.setVolume(0.35f);rxRecord.startRecording();if(projectionFocus==null||projectionFocus.granted())rxTrack.play();
             trialStarted=true;
+            if(diagnostic){diagnosticPrefs.edit().putString("call",trialCall).apply();event("D6_DIAGNOSTIC_BEGIN call="+trialCall+" phases=8 duration_ms=8000 source="+profile.micSource+" same_rx_record=true");}
             if(comparing){trials.edit().putString("call",trialCall).putInt("assigned",trialIndex).putInt("index",trialIndex+1).apply();}
             event("PLAYBACK_VOLUME rx=MEDIA index="+am.getStreamVolume(AudioManager.STREAM_MUSIC)+" max="+am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
             short[] rxSamples=new short[rate/50],txSamples=new short[rate/50],silence=new short[rate/50];
@@ -247,7 +262,7 @@ public final class RxBridgeService extends Service {
                     if(txRecord!=null)for(int drain=0;drain<10&&txRecord.read(txSamples,0,txSamples.length,AudioRecord.READ_NON_BLOCKING)>0;drain++){}
                     Arrays.fill(rxSamples,(short)0);Arrays.fill(txSamples,(short)0);Thread.sleep(100);continue;
                 }
-                if(paused){if(projectionFocus==null||projectionFocus.granted())rxTrack.play();if(txTrack!=null)txTrack.play();paused=false;lastRxData=lastTxData=SystemClock.elapsedRealtime();routeLostSince=0;event("AUDIO_RESUME fresh_same_session=true");phaseNotice(phase,labels[phase],-1);}
+                if(paused){if(projectionFocus==null||projectionFocus.granted())rxTrack.play();if(txTrack!=null)txTrack.play();paused=false;lastRxData=lastTxData=SystemClock.elapsedRealtime();routeLostSince=0;event("AUDIO_RESUME fresh_same_session=true");phaseNotice(phase,diagnostic?AaDiagnosticSchedule.label(phase):labels[phase],diagnostic?8:-1);}
                 long now=SystemClock.elapsedRealtime();
                 if(projectionFocus!=null){
                     boolean lost=!projectionFocus.granted();
@@ -256,40 +271,55 @@ public final class RxBridgeService extends Service {
                 }
                 if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
                 if(telecomBridge&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : Telecom a repris un mode audio incompatible avec le pont.");
-                int nextPhase=DuplexSchedule.next(phase,now-phaseStart,progressive);
+                int nextPhase=diagnostic?AaDiagnosticSchedule.next(phase,now-phaseStart):DuplexSchedule.next(phase,now-phaseStart,progressive);
                 if(nextPhase!=phase){
                     if(carBridge&&phase>0)event("D6_RX_WINDOW phase="+phase+" samples="+rxWindow+" rms="+(rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow))+" peak="+rxPeak+" focus="+(projectionFocus!=null&&projectionFocus.granted()));
                     event("PHASE_END phase="+phase+" elapsed_ms="+(phase==0?0:now-phaseStart)+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" tx_read="+txRead+" tx_written="+txWritten);
                     phase=nextPhase;
-                    if(phase==5){event("SEQUENCE_COMPLETE phases=4");status("D4 : quatre phases terminées. Raccrocher puis exporter le rapport.");break;}
+                    if((diagnostic&&phase==9)||(!diagnostic&&phase==5)){event("SEQUENCE_COMPLETE phases="+(diagnostic?8:4));status(diagnostic?"Diagnostic AA terminé : raccrocher puis exporter le rapport.":"D4 : quatre phases terminées. Raccrocher puis exporter le rapport.");break;}
                     event("PHASE_TRANSITION phase="+phase+" ms="+System.currentTimeMillis());
-                    if(phase==2){
+                    if((!diagnostic&&phase==2)||(diagnostic&&AaDiagnosticSchedule.microphone(phase)&&txRecord==null)){
                         // Do not even construct a SCO AudioTrack before phase 3.
                         txRecord=new AudioRecord.Builder().setAudioSource(carBridge?profile.micSource:MediaRecorder.AudioSource.VOICE_COMMUNICATION).setAudioFormat(inFormat).setBufferSizeInBytes(Math.max(inMin*2,rate/5)).build();
                         if(txRecord.getState()!=AudioRecord.STATE_INITIALIZED)throw new IOException("Capture micro refusée.");
                         if(mic!=null&&!txRecord.setPreferredDevice(mic))throw new IOException("D6 : routage micro véhicule refusé.");
                         txRecord.startRecording();lastTxData=SystemClock.elapsedRealtime();
-                    }else if(phase==3){
+                    }else if((!diagnostic&&phase==3)||(diagnostic&&AaDiagnosticSchedule.transmit(phase)&&txTrack==null)){
                         txTrack=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
                         if(txTrack.getState()!=AudioTrack.STATE_INITIALIZED||!txTrack.setPreferredDevice(scoOut))throw new IOException("Sortie TX SCO refusée.");
                         txTrack.setVolume(0.8f);txTrack.play();
-                    }else if(phase==4){
+                    }else if((!diagnostic&&phase==4)||(diagnostic&&!AaDiagnosticSchedule.transmit(phase)&&txTrack!=null)){
                         // Keep microphone capture active: only the TX output is removed.
                         txTrack.pause();txTrack.flush();txTrack.release();txTrack=null;
                     }
+                    if(diagnostic&&!AaDiagnosticSchedule.microphone(phase)&&txRecord!=null){
+                        txRecord.stop();txRecord.release();txRecord=null;txInputId=mic==null?-1:mic.getId();
+                    }
+                    if(diagnostic&&phase==6){
+                        // Preserve the SCO receiver. Only rebuild projection playback/focus.
+                        // This necessarily includes a track/focus restart: not a pure usage-only intervention.
+                        rxTrack.pause();rxTrack.flush();rxTrack.release();rxTrack=null;
+                        projectionFocus.close();projectionFocus=null;
+                        AudioAttributes mediaAttributes=new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
+                        projectionFocus=new ProjectionAudioFocus(am,mediaAttributes,this::event);projectionFocus.acquire();
+                        rxTrack=new AudioTrack.Builder().setAudioAttributes(mediaAttributes).setAudioFormat(outFormat).setBufferSizeInBytes(Math.max(outMin*2,rate/5)).setTransferMode(AudioTrack.MODE_STREAM).build();
+                        if(rxTrack.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("Initialisation média AA refusée.");
+                        rxTrack.setVolume(0.35f);if(projectionFocus.granted())rxTrack.play();focusPaused=!projectionFocus.granted();routeLostSince=0;
+                        event("D6_OUTPUT_SWITCH usage=1 same_rx_record=true track_and_focus_restarted=true");
+                    }
                     phaseStart=SystemClock.elapsedRealtime();lastStats=phaseStart;lastRxData=phaseStart;
                     rxRead=rxWritten=rxDropped=rxEnergy=rxWindow=txRead=txWritten=txEnergy=txWindow=0;rxPeak=txPeak=0;lastRoutes="";
-                    event("PHASE_BEGIN phase="+phase+" duration_ms="+(progressive?15000:phase==3?-1:1000)+" label="+labels[phase].replace(' ','_')+" mic_source="+(carBridge?profile.micSource:MediaRecorder.AudioSource.VOICE_COMMUNICATION)+" mic_policy="+"default"+" mic_active="+(txRecord!=null)+" tx_active="+(txTrack!=null)+" ms="+System.currentTimeMillis());
-                    phaseNotice(phase,labels[phase],progressive?15:-1);now=phaseStart;
+                    event("PHASE_BEGIN phase="+phase+" duration_ms="+(diagnostic?8000:progressive?15000:phase==3?-1:1000)+" label="+(diagnostic?AaDiagnosticSchedule.label(phase):labels[phase]).replace(' ','_')+" elapsed_ms="+SystemClock.elapsedRealtime()+" output_usage="+(diagnostic?AaDiagnosticSchedule.usage(phase):carBridge?profile.usage:AudioAttributes.USAGE_MEDIA)+" mic_source="+(carBridge?profile.micSource:MediaRecorder.AudioSource.VOICE_COMMUNICATION)+" mic_policy="+"default"+" mic_active="+(txRecord!=null)+" tx_active="+(txTrack!=null)+" ms="+System.currentTimeMillis());
+                    phaseNotice(phase,diagnostic?AaDiagnosticSchedule.label(phase):labels[phase],diagnostic?8:progressive?15:-1);now=phaseStart;
                 }
                 AudioDeviceInfo ri=rxRecord.getRoutedDevice(),ro=rxTrack.getRoutedDevice(),ti=txRecord==null?null:txRecord.getRoutedDevice(),to=txTrack==null?null:txTrack.getRoutedDevice();
                 boolean rxRoute=carBridge?carRxRoute(rxRecord,rxTrack,scoIn,speaker):routed(rxRecord,rxTrack,scoIn.getId(),speaker.getId(),AudioDeviceInfo.TYPE_BLUETOOTH_SCO,AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
                 boolean micRoute=ti!=null&&(txInputId<0||ti.getId()==txInputId)&&ti.getType()==micType;
-                if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source=VOICE_COMMUNICATION policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
+                if(micRoute&&txInputId<0){txInputId=ti.getId();event("MIC_SELECTED source="+(carBridge?profile.micSource:MediaRecorder.AudioSource.VOICE_COMMUNICATION)+" policy_default=true id="+txInputId+" address="+Privacy.clean(ti.getAddress()));}
                 boolean txRoute=txTrack!=null&&routed(txRecord,txTrack,txInputId,scoOut.getId(),micType,AudioDeviceInfo.TYPE_BLUETOOTH_SCO);
                 String routes="phase="+phase+" rx="+rxRoute+" mic="+micRoute+" tx="+txRoute+" rx_in="+(ri==null?-1:ri.getId())+" rx_out="+(ro==null?-1:ro.getId())+" tx_in="+(ti==null?-1:ti.getId())+" tx_out="+(to==null?-1:to.getId());
                 if(!routes.equals(lastRoutes)){event("PHASE_ROUTE "+routes);if(carBridge)event("D6_ACTUAL_OUTPUT id="+(ro==null?-1:ro.getId())+" type="+(ro==null?-1:ro.getType())+" address="+(ro==null?"none":Privacy.clean(ro.getAddress()))+" registered_projection="+CarEndpoints.projectionOutput(ro));lastRoutes=routes;}
-                if(!progressive&&phase==3){if((rxRoute||focusPaused)&&micRoute&&txRoute)routeLostSince=0;else if(routeLostSince==0)routeLostSince=now;else if(now-routeLostSince>3000)throw new IOException("Route duplex perdue depuis 3 secondes : exporter le rapport.");}
+                if(!progressive&&!diagnostic&&phase==3){if((rxRoute||focusPaused)&&micRoute&&txRoute)routeLostSince=0;else if(routeLostSince==0)routeLostSince=now;else if(now-routeLostSince>3000)throw new IOException("Route duplex perdue depuis 3 secondes : exporter le rapport.");}
                 // Observe route conflicts without retrying preferences or aborting the
                 // sequence. Never forward audio to an unexpected endpoint.
                 if(!rxRoute&&!focusPaused)rxTrack.write(silence,0,silence.length,AudioTrack.WRITE_NON_BLOCKING);
@@ -309,15 +339,15 @@ public final class RxBridgeService extends Service {
                 if(now-lastStats>=2000){
 
                     AudioRecordingConfiguration rc=rxRecord.getActiveRecordingConfiguration(),tc=txRecord==null?null:txRecord.getActiveRecordingConfiguration();
-                    if(!progressive&&((rc!=null&&rc.isClientSilenced())||(tc!=null&&tc.isClientSilenced())))throw new IOException("Capture duplex rendue silencieuse par Android.");
+                    if(!progressive&&!diagnostic&&((rc!=null&&rc.isClientSilenced())||(tc!=null&&tc.isClientSilenced())))throw new IOException("Capture duplex rendue silencieuse par Android.");
                     event("PHASE_STATS "+routes+" rx_read="+rxRead+" rx_written="+rxWritten+" rx_dropped="+rxDropped+" rx_rms="+(rxWindow==0?0:(long)Math.sqrt((double)rxEnergy/rxWindow))+" rx_peak="+rxPeak+" rx_head="+Integer.toUnsignedLong(rxTrack.getPlaybackHeadPosition())+" rx_underruns="+rxTrack.getUnderrunCount()+" rx_silenced="+(rc!=null&&rc.isClientSilenced())+" tx_read="+txRead+" tx_written="+txWritten+" tx_rms="+(txWindow==0?0:(long)Math.sqrt((double)txEnergy/txWindow))+" tx_peak="+txPeak+" tx_silenced="+(tc!=null&&tc.isClientSilenced())+" audio_mode="+am.getMode()+" media_volume="+am.getStreamVolume(AudioManager.STREAM_MUSIC));
-                    phaseNotice(phase,labels[phase],progressive?Math.max(0,(int)((15000-(now-phaseStart)+999)/1000)):-1);
+                    phaseNotice(phase,diagnostic?AaDiagnosticSchedule.label(phase):labels[phase],diagnostic?Math.max(0,(int)((8000-(now-phaseStart)+999)/1000)):progressive?Math.max(0,(int)((15000-(now-phaseStart)+999)/1000)):-1);
                     if(carBridge&&focusPaused)status("D6 : sortie suspendue, priorité audio perdue. Exporter le rapport.");
                     lastStats=now;rxEnergy=rxWindow=txEnergy=txWindow=0;rxPeak=txPeak=0;
                 }
                 // A missing stream is logged instead of preventing phases 3/4 from
                 // testing whether adding/removing TX restores RX. Overall time is 60 s.
-                if(!progressive&&(now-lastRxData>8000||(txRecord!=null&&now-lastTxData>8000)))throw new IOException("Capture duplex sans données depuis 8 secondes.");
+                if(!progressive&&!diagnostic&&(now-lastRxData>8000||(txRecord!=null&&now-lastTxData>8000)))throw new IOException("Capture duplex sans données depuis 8 secondes.");
                 if(now-lastRxData>8000&&now-lastStats<10)event("PHASE_NO_DATA phase="+phase+" direction=rx");
                 if(txRecord!=null&&now-lastTxData>8000&&now-lastStats<10)event("PHASE_NO_DATA phase="+phase+" direction=tx");
                 Thread.sleep(10);
@@ -335,7 +365,7 @@ public final class RxBridgeService extends Service {
                     int next=trialIndex+1;
                     event("D6_TRIAL_END trial="+(trialIndex+1)+" next="+(next<AaAudioTrial.COUNT?next+1:0)+" comparison_complete="+(next==AaAudioTrial.COUNT));
                 }
-                aaTrialNotice="";
+                aaTrialNotice="";aaDiagnosticNotice=false;
             }}
         }
     }
