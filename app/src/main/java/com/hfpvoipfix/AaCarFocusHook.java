@@ -15,6 +15,7 @@ final class AaCarFocusHook {
  static String status(){return status;}
  private static final Map<Object,String> attempted=new WeakHashMap<>();
  private static final Map<Object,Transport> transports=new WeakHashMap<>();
+ private static final Map<Integer,Long> bottomLogs=new HashMap<>();
  private static final class Transport {long start,calls,startedCalls,ackMessages,errors;String session;Transport(long now,String s){start=now;session=s;}}
  private static String prop(String k){return (String)XposedHelpers.callStaticMethod(XposedHelpers.findClass("android.os.SystemProperties",null),"get",k,"");}
  private static String proof(){long now=SystemClock.elapsedRealtime();String p=prop(NativeScoLease.PROP);
@@ -96,10 +97,20 @@ final class AaCarFocusHook {
     @Override protected void afterHookedMethod(MethodHookParam p){if(Integer.valueOf(32772).equals(p.args[0]))observeTransport(p.thisObject,false,true,p.hasThrowable());}
    });
    XposedHelpers.findAndHookMethod(endpoint,"w",new XC_MethodHook(){
-    @Override protected void afterHookedMethod(MethodHookParam p){try{if("jdz".equals(p.thisObject.getClass().getName())&&proof()!=null)event("event=audio_endpoint_stop started_after="+field(p.thisObject,"g"));}catch(Throwable ignored){}}
+    @Override protected void afterHookedMethod(MethodHookParam p){try{if("jdz".equals(p.thisObject.getClass().getName())&&proof()!=null)event("event=audio_endpoint_stop stream="+field(p.thisObject,"e")+" started_after="+field(p.thisObject,"g"));}catch(Throwable ignored){}}
    });
    event("transport_observer_ready=true no_buffers_read=true ack_messages_not_playback_proof=true");
   }catch(Throwable t){event("transport_observer_ready=false reason="+t.getClass().getSimpleName());}
+  try{
+   XposedHelpers.findAndHookMethod(XposedHelpers.findClass("ise",cl),"a",int.class,String.class,new XC_MethodHook(){
+    @Override protected void afterHookedMethod(MethodHookParam p){try{
+     if(proof()==null)return;long now=SystemClock.elapsedRealtime();int stream=(Integer)p.args[0];
+     synchronized(bottomLogs){Long last=bottomLogs.get(stream);if(last!=null&&now-last<2000)return;if(bottomLogs.size()>=8)bottomLogs.clear();bottomLogs.put(stream,now);}
+     event("event=bottom_half_request stream="+stream+" endpoint_returned="+(p.getResult()!=null)+" error="+p.hasThrowable()+" car_grant_not_implied=true");
+    }catch(Throwable ignored){}}
+   });
+   event("allocation_observer_ready=true no_result_override=true");
+  }catch(Throwable t){event("allocation_observer_ready=false reason="+t.getClass().getSimpleName());}
  }
  private static void observeTransport(Object endpoint,boolean started,boolean ack,boolean error){
   try{

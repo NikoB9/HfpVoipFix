@@ -27,7 +27,7 @@ public final class ProbeChannelTest {
             while((s=r.readLine())!=null){if(s.startsWith("echo UID"))w.println(s.substring(5,s.indexOf("$("))+"0");
                 else if(s.startsWith("setprop debug.hfpvoipfix.sco_lease ")){String marker=s.substring(s.indexOf("echo SCOOK")+10,s.indexOf(" ||"));w.println("SCOOK"+marker);}
                 else if(s.startsWith("setprop")){String token=s.split(" ")[2];current.set(token);w.println("OK"+token);Thread.sleep(50);
-                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.14 token="+current.get()+" busy=false");}
+                    event.println("I/HfpVoipFix: LAB epoch=42 STATUS version=1.9.15 token="+current.get()+" busy=false");}
             }
         }catch(Exception ignored){}}).start();return new Pipe[]{shell,log};
     }

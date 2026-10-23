@@ -205,13 +205,40 @@ public class MasterAudioRecoveryTest {
  set("selected","telecom_duplex");ensure.invoke(null);set("selected","telecom_aa");HeadsetClientService.audioState=1;SystemClock.time=160000;ensure.invoke(null);SystemClock.time=172000;ensure.invoke(null);calls.clear();sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
  System.out.println("PASS production master recovery: state-machine pending cancellation, actual disconnected event required, late callback/connected/owned ports/D5/ended-call preservation");
  }}'''
+SOURCES['com/hfpvoipfix/TelecomEvidenceRaceTest.java']='''package com.hfpvoipfix;
+import java.lang.reflect.*;import java.util.*;import android.telecom.*;import android.os.*;import android.bluetooth.*;import de.robv.android.xposed.*;import de.robv.android.xposed.callbacks.*;
+public class TelecomEvidenceRaceTest {
+ public static class RealConnection extends Connection {public Object key;public int state=4;public RealConnection(String k){key=k;}public Object getUUID(){return key;}public int getState(){return state;}}
+ static void check(boolean b,String s){if(!b)throw new AssertionError(s);}
+ static Object field(String n)throws Exception{Field f=HfpVoipFix.class.getDeclaredField(n);f.setAccessible(true);return f.get(null);}
+ static void call(String n,Object o,Object result,Object...args)throws Throwable{XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=o;p.result=result;p.args=args;XC_MethodHook h=XposedHelpers.hooks.get(n);h.before(p);h.after(p);}
+ static void state(Object sm,String key,int state)throws Throwable{BluetoothHeadsetClientCall c=new BluetoothHeadsetClientCall();c.key=key;c.state=state;call("sendCallChangedIntent",sm,null,c);}
+ static void create(Connection c)throws Throwable{call("onCreateOutgoingConnection",null,c,null,null);}
+ static boolean confirmed()throws Exception{return (Boolean)field("telecomConfirmed");}
+ public static void main(String[] args)throws Throwable{
+ SystemProperties.mode="telecom_aa";SystemClock.time=100;
+ XC_LoadPackage.LoadPackageParam p=new XC_LoadPackage.LoadPackageParam();p.packageName="com.android.bluetooth";p.classLoader=TelecomEvidenceRaceTest.class.getClassLoader();new HfpVoipFix().handleLoadPackage(p);
+ Object sm=new com.android.bluetooth.hfpclient.HeadsetClientStateMachine();
+ RealConnection a=new RealConnection("a");state(sm,"a",0);create(a);check(confirmed()&&a.voip,"real first call confirmed");
+ Set<Object> scos=(Set<Object>)field("scos");scos.add(sm);state(sm,"a",7);check(!confirmed(),"ended call revoked before old SCO ends");
+ RealConnection b=new RealConnection("b");create(b);check(!confirmed(),"new connection alone does not confirm an unknown HFP call");
+ scos.clear();Method idle=HfpVoipFix.class.getDeclaredMethod("finishCommunicationIfIdle");idle.setAccessible(true);idle.invoke(null);check(!confirmed(),"old SCO cleanup retains no grant");
+ state(sm,"b",2);check(confirmed(),"later HFP UUID matches retained real new connection after old cleanup");state(sm,"b",0);check(confirmed(),"same UUID remains valid");
+ state(sm,"b",7);state(sm,"c",0);check(!confirmed(),"old UUID cannot confirm another call");
+ RealConnection disconnected=new RealConnection("c");disconnected.state=6;create(disconnected);check(!confirmed(),"disconnected result excluded");
+ create(new Connection());check(!confirmed(),"missing UUID fails closed for D6");state(sm,"c",7);
+ SystemProperties.mode="telecom_duplex";Connection d5=new Connection();create(d5);check(d5.voip&&confirmed(),"D5 connection behavior preserved without UUID dependency");
+ TelecomCallEvidence e=new TelecomCallEvidence();Object keep=new Object();e.add("late",keep,100);check(!e.confirmed(Collections.singleton("late"),30100,c->true),"unmatched evidence expires");e.add("active",keep,100);check(e.confirmed(Collections.singleton("active"),101,c->true)&&e.confirmed(Collections.singleton("active"),100000,c->true),"matched real active call survives long calls");check(!e.confirmed(Collections.singleton("active"),100001,c->false),"closed connection revoked");
+ System.out.println("PASS production D6 connection/SCO race: UUID correlation survives older cleanup; unknown, ended, disconnected, expired evidence excluded; D5 preserved.");
+ }}'''
 with tempfile.TemporaryDirectory(dir=ROOT/'tests') as d:
  d=pathlib.Path(d); src=d/'src';out=d/'classes';out.mkdir()
  for name,s in SOURCES.items():
   p=src/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
- files=[str(p) for p in src.rglob('*.java')]+[str(ROOT/'app/src/main/java/com/hfpvoipfix'/n) for n in ('HfpVoipFix.java','LabModes.java','Privacy.java','CallCommand.java','HfpAccountPolicy.java','ScoConnectPolicy.java','AaSimHook.java','AaRelayPolicy.java','RxGate.java','TelecomAudioHook.java','CarProjectionGate.java','CarProjectionHook.java','TelecomModeGate.java','TelecomLoaderHook.java','NativeScoLease.java','NativeScoKeeper.java','NativeScoGuard.java','ProjectionFocusGate.java','ProjectionFocusHook.java','AaProjectionReadHook.java','PcmLevel.java','AaCarFocusHook.java','AaCarFocusPolicy.java')]
+ files=[str(p) for p in src.rglob('*.java')]+[str(ROOT/'app/src/main/java/com/hfpvoipfix'/n) for n in ('HfpVoipFix.java','LabModes.java','Privacy.java','CallCommand.java','HfpAccountPolicy.java','ScoConnectPolicy.java','AaSimHook.java','AaRelayPolicy.java','RxGate.java','TelecomAudioHook.java','CarProjectionGate.java','CarProjectionHook.java','TelecomModeGate.java','TelecomLoaderHook.java','NativeScoLease.java','NativeScoKeeper.java','NativeScoGuard.java','ProjectionFocusGate.java','ProjectionFocusHook.java','AaProjectionReadHook.java','PcmLevel.java','AaCarFocusHook.java','AaCarFocusPolicy.java','TelecomCallEvidence.java')]
  java=pathlib.Path(os.environ['JAVA_HOME'])/'bin'
  subprocess.run([str(java/'javac'),'-encoding','UTF-8','-d',str(out),*files],check=True)
+ subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.TelecomEvidenceRaceTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.MasterAudioRecoveryTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.StatusIsolationTest'],check=True)
  subprocess.run([str(java/'java'),'-cp',str(out),'com.hfpvoipfix.AaSimHookTest'],check=True)

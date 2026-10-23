@@ -24,6 +24,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
     private static int nextCallId=1;
     private static final Map<Object,Object> callMachines=new HashMap<>();
     private static boolean telecomConfirmed;
+    private static final TelecomCallEvidence telecomEvidence=new TelecomCallEvidence();
     private static boolean disconnectHook, bypassConfirmed, commAttempted, commRequested, commCleanupUnconfirmed;
     private static AudioManager commAudio;
     private static Object pendingCommMachine;
@@ -88,7 +89,8 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                     if(state!=7){latch();calls.add(key);callStates.put(key,state);callMachines.put(key,p.thisObject);}
                     if(!callIds.containsKey(key))callIds.put(key,nextCallId++);
                     event("CALL id="+callIds.get(key)+" state="+state+" mode="+selected+" ms="+System.currentTimeMillis());
-                    if(state==7){calls.remove(key);callStates.remove(key);callIds.remove(key);callMachines.remove(key);finishCommunicationIfIdle();}
+                    if(state==7){calls.remove(key);callStates.remove(key);callIds.remove(key);callMachines.remove(key);telecomEvidence.remove(key);finishCommunicationIfIdle();}
+                    if(LabModes.car(selected))refreshTelecomEvidence();
                 }catch(Throwable t){error("call_state",t);}}}
             });callHook=true;
         }catch(Throwable t){error("lifecycle_hook",t);}
@@ -102,6 +104,8 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                                 calls.remove(key);callStates.remove(key);callIds.remove(key);callMachines.remove(key);
                             }
                             scos.remove(p.thisObject);
+                            telecomEvidence.clear();
+                            if(LabModes.car(selected))telecomConfirmed=false;
                             if(owner==p.thisObject)cleanup();
                             if(pendingCommMachine==p.thisObject)pendingCommMachine=null;
                             event("PROFILE_DISCONNECTED mode="+selected);finishCommunicationIfIdle();
@@ -141,7 +145,14 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                     }}
                     @Override protected void afterHookedMethod(MethodHookParam p){synchronized(LOCK){
                         if(p.hasThrowable()||p.getResult()==null||!LabModes.voip(selected))return;
-                        try{XposedHelpers.callMethod(p.getResult(),"setAudioModeIsVoip",true);event("VOIP_APPLIED mode="+selected);if(LabModes.telecom(selected)&&p.getResult() instanceof Connection&&((Connection)p.getResult()).getState()!=Connection.STATE_DISCONNECTED){telecomConfirmed=true;event("TELECOM_CONNECTION_CONFIRMED mode="+selected);}strategy(selected.equals("voip")?"applied":"partial","voip_connection_flag_set");}
+                        try{XposedHelpers.callMethod(p.getResult(),"setAudioModeIsVoip",true);event("VOIP_APPLIED mode="+selected);if(LabModes.telecom(selected)&&p.getResult() instanceof Connection&&((Connection)p.getResult()).getState()!=Connection.STATE_DISCONNECTED){
+                            if(LabModes.car(selected)){
+                                Object key=XposedHelpers.callMethod(p.getResult(),"getUUID");
+                                telecomEvidence.add(key,p.getResult(),SystemClock.elapsedRealtime());refreshTelecomEvidence();
+                                event("TELECOM_CONNECTION_EVIDENCE mode="+selected+" uuid_present="+(key!=null)+" matched_call="+telecomConfirmed);
+                            }else telecomConfirmed=true;
+                            if(telecomConfirmed)event("TELECOM_CONNECTION_CONFIRMED mode="+selected);
+                        }strategy(selected.equals("voip")?"applied":"partial","voip_connection_flag_set");}
                         catch(Throwable t){error("early_voip",t);}
                     }}
                 });voipHooks++;
@@ -152,7 +163,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
         try{carService=XposedHelpers.findClass("com.android.bluetooth.hfp.HeadsetService",cl);}catch(Throwable ignored){}
-        event("HOOKS version=1.9.14 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.15 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -161,7 +172,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.14 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.15 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " status_at="+SystemClock.elapsedRealtime()+" call_count="+calls.size()+" call_id="+currentCallId()+" native_sco="+(mtkScoApplied&&softwarePorts)+" ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 networkStatus+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
@@ -316,6 +327,11 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             event("COMM_MONITOR actual_mode="+actual);
             if(actual!=AudioManager.MODE_IN_COMMUNICATION)strategy("unavailable","communication_mode_lost");
         }}catch(Throwable t){error("communication_monitor",t);}
+    }
+    private static void refreshTelecomEvidence(){
+        boolean confirmed=telecomEvidence.confirmed(calls,SystemClock.elapsedRealtime(),c->c instanceof Connection&&((Connection)c).getState()!=Connection.STATE_DISCONNECTED);
+        if(confirmed!=telecomConfirmed)event("TELECOM_EVIDENCE matched_call="+confirmed+" source=real_connection_uuid");
+        telecomConfirmed=confirmed;
     }
     private static void finishCommunicationIfIdle(){if(!busy()){telecomConfirmed=false;pendingCommMachine=null;releaseCommunication();}}
     private static void releaseCommunication(){

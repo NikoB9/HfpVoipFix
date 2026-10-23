@@ -37,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HFP · 1.9.14",27);text(l,"Les appels du Samsung sur le Redmi",16);
+        text(l,"HFP · 1.9.15",27);text(l,"Les appels du Samsung sur le Redmi",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -74,11 +74,7 @@ public final class ModeActivity extends Activity {
             .setMessage("Copie en lecture seule des bibliothèques audio/Bluetooth et XML système (128 Mio maximum). Les traces HCI existantes sont lues pour extraire uniquement les métadonnées de transport ; les paquets bruts et le son sont exclus du ZIP. Les binaires sont conservés à l’identique. Le rapport d’appels précédent reste disponible. Garder les appels arrêtés pendant la collecte.")
             .setNegativeButton("Annuler",null).setPositiveButton("Collecter",(d,w)->startForegroundService(new Intent(this,FirmwareService.class))).show());
         firmwareInspect=button(l,"Vérifier le contenu du ZIP firmware",()->inspectZip("HFP-Firmware.zip",new String[]{"README.txt","inventory.tsv","hci-transport.txt","errors.txt","system-info.txt"}));
-        firmwareShare=button(l,"Partager le firmware dans ChatGPT",()->{
-            Intent i=new Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM,ReportProvider.FIRMWARE);
-            i.setClipData(ClipData.newUri(getContentResolver(),"Firmware audio",ReportProvider.FIRMWARE));i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            try{startActivity(Intent.createChooser(i,"Partager le firmware dans ChatGPT"));}catch(ActivityNotFoundException e){toast("Aucune application de partage disponible.");}
-        });
+        firmwareShare=button(l,"Enregistrer le firmware dans Téléchargements",()->saveDownload("HFP-Firmware.zip","HFP-Firmware"));
         l=root;
         text(l,"Session et rapport",21);
         start=button(l,"Démarrer la session",()->{
@@ -92,25 +88,24 @@ public final class ModeActivity extends Activity {
         rate=button(advanced,"Après raccrochage : noter réception et microphone",this::rating);
         stop=button(l,"Terminer et préparer le rapport",()->action(CaptureService.STOP));
         text(l,"Attendre « Capture confirmée », appeler, raccrocher, noter le résultat puis changer de mode. La capture reste ouverte entre les essais. Le compteur concerne les événements filtrés.",15);
-        text(l,"Partager le résultat",21);
+        text(l,"Enregistrer le rapport",21);
         inspect=button(advanced,"Vérifier les fichiers du rapport",this::inspectReport);
-        share=button(l,"Partager le rapport dans ChatGPT",()->{
-            new AlertDialog.Builder(this).setTitle("Partager le rapport ?").setMessage("Le masquage est partiel. Vérifier les fichiers avant partage. Choisir ChatGPT dans la feuille de partage.").setNegativeButton("Annuler",null).setPositiveButton("Partager",(d,w)->{
-                Intent i=new Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM,ReportProvider.URI);
-                i.setClipData(ClipData.newUri(getContentResolver(),"Rapport HFP",ReportProvider.URI));i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try{startActivity(Intent.createChooser(i,"Partager le rapport dans ChatGPT"));}catch(ActivityNotFoundException e){toast("Aucune application de partage disponible.");}
-            }).show();
-        });
+        share=button(l,"Enregistrer le rapport dans Téléchargements",()->saveDownload("HFP-Rapport.zip","HFP-Rapport"));
+        text(l,"Le ZIP reçoit un nom daté dans Téléchargements. Ouvrir ensuite la conversation ChatGPT voulue et joindre ce fichier. Le masquage est partiel : vérifier le rapport avant de le transmettre.",15);
         text(advanced,"Sécurité : aucune lecture PCM /proc/asound, aucun tinymix, aucune modification vendor. Une réussite d’AudioPatch n’atteste pas du transport Bluetooth. En cas de route résiduelle signalée, arrêter les essais et exporter.",14);
         setContentView(scroll);showMode();ui.post(()->{restoringSelection=false;showMode();});
     }
+    private void saveDownload(String file,String prefix){task(()->{
+        String name=DownloadExport.save(getContentResolver(),new File(getFilesDir(),file),prefix);
+        ui.post(()->toast("Enregistré dans Téléchargements : "+name+"\nDans la conversation voulue, joindre ce fichier avec le bouton +."));
+    });}
     private void controlCall(String action){
         if(LabModes.telecom(selectedMode())){toast("D5 : utiliser Téléphone avec le compte Samsung. Les boutons HFP directs sont réservés à D4.");return;}final String number=action.equals("dial")?phoneNumber.getText().toString().replace(" ",""):"-";
         if(action.equals("dial")&&!number.matches("[+]?[0-9]{1,20}")){toast("Saisir un numéro composé de chiffres, avec + facultatif.");return;}
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.9.14 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.14 chargé après redémarrage.");
+            if(!p.contains("version=1.9.15 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.15 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -137,7 +132,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();BridgeJournal.write(getFilesDir(),"MODE_APPLY_REQUEST choice="+choice);
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.9.14 "))throw new IOException("Ancien module encore chargé : installer 1.9.14 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.9.15 "))throw new IOException("Ancien module encore chargé : installer 1.9.15 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");
@@ -204,11 +199,11 @@ public final class ModeActivity extends Activity {
         if(rxStop!=null)rxStop.setEnabled(bridging);
         if(probeButton!=null)probeButton.setEnabled(!bridging&&!working);
         if(firmwareStatus!=null)firmwareStatus.setText(fp.getString("status","Aucune collecte statique effectuée."));
-        if(firmware!=null){firmware.setEnabled(!bridging&&!CaptureService.alive&&!collecting&&!working);boolean fr=fs.equals("ready")&&!collecting&&new File(getFilesDir(),"HFP-Firmware.zip").isFile();firmwareShare.setEnabled(fr);firmwareInspect.setEnabled(fr&&!working);}
+        if(firmware!=null){firmware.setEnabled(!bridging&&!CaptureService.alive&&!collecting&&!working);boolean fr=fs.equals("ready")&&!collecting&&new File(getFilesDir(),"HFP-Firmware.zip").isFile();firmwareShare.setEnabled(fr&&!working);firmwareInspect.setEnabled(fr&&!working);}
         boolean running=phase.equals("running"), starting=phase.equals("starting"), processing=phase.equals("processing");
         if(start!=null){start.setEnabled(!collecting&&!running&&!starting&&!processing&&!working);stop.setEnabled((running||starting||phase.equals("error"))&&!processing);snap.setEnabled(running);rate.setEnabled(running);}
         if(apply!=null)apply.setEnabled(!RelayService.enabled(this)&&!collecting&&!working&&!starting&&!processing);
-        boolean ready=phase.equals("ready")&&new File(getFilesDir(),"HFP-Rapport.zip").isFile();if(share!=null){share.setEnabled(ready);inspect.setEnabled(ready&&!working);}
+        boolean ready=phase.equals("ready")&&new File(getFilesDir(),"HFP-Rapport.zip").isFile();if(share!=null){share.setEnabled(ready&&!working);inspect.setEnabled(ready&&!working);}
     }
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
         super.onRequestPermissionsResult(requestCode,permissions,results);
