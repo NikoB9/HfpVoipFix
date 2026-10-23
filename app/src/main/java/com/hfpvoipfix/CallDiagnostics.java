@@ -33,7 +33,7 @@ final class CallDiagnostics {
       if(readers.size()>=2)break;
       final int pid=e.getKey();
       attempts.put(pid,attempt+1);
-      java.lang.Process process=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 100 --pid="+pid+" HfpVoipFix:I GH.CallManager:I GH.CallViewController:I GH.LocalICSCallAdapter:I PhoneAppProvider:I Telecom:I AndroidRuntime:E '*:S'").redirectErrorStream(true).start();
+      java.lang.Process process=new ProcessBuilder("su","-c","exec logcat -b main -b system -v threadtime -T 100 --pid="+pid+" HfpVoipFix:I CAR.AUDIO.FOCUS:I CAR.AUDIO.CHANNEL:I CAR.AUDIO.AFM:I CAR.AUDIO.MEDIA:I CAR.AUDIO.TTS:I CAR.AUDIO.MEDIA.LITE:I CAR.AUDIO.TTS.LITE:I GH.CallManager:I GH.CallViewController:I GH.LocalICSCallAdapter:I PhoneAppProvider:I Telecom:I AndroidRuntime:E '*:S'").redirectErrorStream(true).start();
       Thread thread=new Thread(()->read(pid,process),"hfp-aa-log-"+pid);
       readers.put(pid,new Reader(process,thread));threads.add(thread);
       write("READER_START ms="+System.currentTimeMillis()+" pid="+pid+" name="+e.getValue()+" attempt="+(attempt+1)+" lookback_lines=100");thread.start();

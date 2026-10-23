@@ -53,7 +53,7 @@ final class AaProjectionReadHook {
    if(address==null||!address.matches("[0-9]+:ap:[0-9]+mixp:[0-9]+"))address="unidentified";
    String silenced="unknown";
    try{android.media.AudioRecordingConfiguration config=record.getActiveRecordingConfiguration();if(config!=null)silenced=String.valueOf(config.isClientSilenced());}catch(Throwable ignored){}
-   event("session="+session+" window_start_elapsed_ms="+windowStart+" window_end_elapsed_ms="+windowEnd+" reader_silenced="+silenced+" metadata_at_elapsed_ms="+SystemClock.elapsedRealtime()+" input_id="+(device==null?-1:device.getId())+" input_type="+(device==null?-1:device.getType())+" address="+address+
+   event("session="+session+" car_focus_hook="+AaCarFocusHook.status()+" window_start_elapsed_ms="+windowStart+" window_end_elapsed_ms="+windowEnd+" reader_silenced="+silenced+" metadata_at_elapsed_ms="+SystemClock.elapsedRealtime()+" input_id="+(device==null?-1:device.getId())+" input_type="+(device==null?-1:device.getType())+" address="+address+
     " rate="+record.getSampleRate()+" encoding="+record.getAudioFormat()+" channels="+record.getChannelCount()+" reads="+reads+" returned_units="+units+
     " inspected="+inspected+" sampled_rms="+rms+" sampled_peak="+peak+" last_result="+returned+" content_identity_unverified=true");
   }catch(Throwable t){event("metadata_unavailable="+t.getClass().getSimpleName());}

@@ -6,6 +6,7 @@ module=ast.parse((root/'tests/native_sco_guard_test.py').read_text())
 files=ast.literal_eval(next(n.value for n in module.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='files' for t in n.targets)))
 files.pop('com/hfpvoipfix/NativeScoGuardTest.java')
 files.update({
+'com/hfpvoipfix/AaCarFocusHook.java':'package com.hfpvoipfix;final class AaCarFocusHook {static String status(){return "fixture_observer_only";}}',
 'android/util/Log.java':'''package android.util;public class Log {public static java.util.List<String> lines=new java.util.ArrayList<>();public static int i(String a,String b){lines.add(b);return 0;}}''',
 'android/media/AudioRecordingConfiguration.java':'''package android.media;public class AudioRecordingConfiguration {public boolean silenced;public boolean isClientSilenced(){return silenced;}}''',
 'android/media/AudioDeviceInfo.java':'''package android.media;public class AudioDeviceInfo {public String address="1506431339:ap:0mixp:1";public int getId(){return 46;}public int getType(){return 25;}public String getAddress(){return address;}}''',
