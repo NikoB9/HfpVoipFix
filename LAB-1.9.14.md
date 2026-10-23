@@ -88,3 +88,19 @@ Raccrocher et exporter. Signaler si le son tient ou l'instant approximatif de sa
 coupure. Pas de comparaison de quatre appels demandée. Le résultat attendu dans
 le rapport est d'abord la séparation blocage/envoi/réponse/soumissions ; aucune
 amélioration acoustique n'est annoncée avant ce retour.
+
+## Livraison vérifiée
+
+- Sources APK : commit `6d7674b08124b59206085914a798256c982d5343`,
+  arbre `a8e33dc564826332c9ccb93ec71397fa59f072c6`.
+- [Compilation et tests réussis](https://github.com/NikoB9/HfpVoipFix/actions/runs/40006217761),
+  job `120594682021`, artifact `12524137464` nommé `HfpVoipLab-1.9.14-signed`.
+- APK : `HfpVoipLab-1.9.14.apk`, **250246 octets**, versionCode **77**.
+- SHA-256 : `7efa573eacb3c2a0071297dc3e97848a940d54887711af3a119f4147c18d8657`.
+- Signature temporaire RSA 3072, v3 vérifiée dans CI puis indépendamment avec
+  ApkVerifier 8.9.1 pour Android 11 / API 30, sans erreur. Certificat SHA-256 :
+  `b487ee25129b006e99e2af63f213e411ef735beeb1b41bcdc67ecde788139a2c`.
+- Alignement vérifié par zipalign dans CI puis contrôle indépendant des offsets
+  ZIP des entrées non compressées. Archive artifact vérifiée par son digest.
+- Les contrôles logiciels passent ; aucun essai matériel de cette APK n'est
+  encore reçu. Désinstaller l'ancienne APK pour changer d'identité de signature.
