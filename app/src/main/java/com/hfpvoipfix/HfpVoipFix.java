@@ -163,7 +163,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
         try{carService=XposedHelpers.findClass("com.android.bluetooth.hfp.HeadsetService",cl);}catch(Throwable ignored){}
-        event("HOOKS version=1.9.15 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.16 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -172,7 +172,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.15 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.16 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " status_at="+SystemClock.elapsedRealtime()+" call_count="+calls.size()+" call_id="+currentCallId()+" native_sco="+(mtkScoApplied&&softwarePorts)+" ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 networkStatus+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
@@ -184,7 +184,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         auxiliary.schedule(new TimerTask(){public void run(){try{ensureOutgoingHfpAccount();ensureMasterAudio();readCarNetwork();}catch(Throwable t){error("car_control_tick",t);}}},750,2000);
     }
     private static void ensureOutgoingHfpAccount(){
-        if(!LabModes.car(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
+        if(!"telecom_aa".equals(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
         long now=android.os.SystemClock.elapsedRealtime();
         if(outgoingHfpSelected||now<nextOutgoingAccountAttempt||controlService==null)return;
         nextOutgoingAccountAttempt=now+5000;
@@ -207,9 +207,10 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             outgoingHfpSelected=true;event("TELECOM_DEFAULT result=selected account=HFP");
         }catch(Throwable t){event("TELECOM_DEFAULT result=retry reason="+t.getClass().getSimpleName());}
     }
+    private static boolean projectionCallConfirmed(){return LabModes.isolated(selected)?bypassConfirmed:telecomConfirmed;}
     private static void ensureMasterAudio(){
         Object key,machine;
-        synchronized(LOCK){boolean active=LabModes.car(selected)&&telecomConfirmed&&calls.size()==1&&callStates.containsValue(0);
+        synchronized(LOCK){boolean active=LabModes.car(selected)&&projectionCallConfirmed()&&calls.size()==1&&callStates.containsValue(0);
             key=active?calls.iterator().next():null;
             if(!active){scoConnectPolicy.action(null,false,true,-1,SystemClock.elapsedRealtime());lastMasterAudioState=-99;return;}
             if(!scos.isEmpty()){scoConnectPolicy.action(key,true,false,2,SystemClock.elapsedRealtime());return;}
@@ -223,7 +224,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             if(machine==null||!device.equals(XposedHelpers.getObjectField(machine,"mCurrentDevice")))throw new IllegalStateException("call_device_mismatch");
             int state=(Integer)XposedHelpers.callMethod(service,"getAudioState",device),action;
             synchronized(LOCK){
-                if(!LabModes.car(selected)||!telecomConfirmed||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty())return;
+                if(!LabModes.car(selected)||!projectionCallConfirmed()||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty())return;
                 action=scoConnectPolicy.action(key,true,true,state,SystemClock.elapsedRealtime());
                 if(state!=lastMasterAudioState){lastMasterAudioState=state;event("MASTER_AUDIO observed_state="+state+" owned_sco=false attempt="+scoConnectPolicy.attempts());}
             }
@@ -238,7 +239,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         return Boolean.TRUE.equals(XposedHelpers.callMethod(handler,"post",(Runnable)()->{
             try{
                 synchronized(LOCK){
-                    if(!LabModes.car(selected)||!telecomConfirmed||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty()||callMachines.get(key)!=machine){event("MASTER_AUDIO cancel_pending=skipped reason=session_changed");return;}
+                    if(!LabModes.car(selected)||!projectionCallConfirmed()||calls.size()!=1||!calls.contains(key)||!Integer.valueOf(0).equals(callStates.get(key))||!scos.isEmpty()||callMachines.get(key)!=machine){event("MASTER_AUDIO cancel_pending=skipped reason=session_changed");return;}
                 }
                 // Recheck on the Bluetooth state-machine thread. The service's
                 // disconnectAudio API refuses a pending connection (isAudioOn=false).
@@ -254,7 +255,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         }));
     }
     private static void readCarNetwork(){
-        if(!LabModes.car(prop(LabModes.PROP,"observe"))){networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";lastNetworkState="";return;}
+        if(!"telecom_aa".equals(prop(LabModes.PROP,"observe"))){networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";lastNetworkState="";return;}
         long now=SystemClock.elapsedRealtime();if(now<nextNetworkRead)return;nextNetworkRead=now+2000;
         networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";
         try{

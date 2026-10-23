@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 export PATH="$JAVA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$JAVA_HOME/lib:$JAVA_HOME/lib/server:$ANDROID_BUILD_TOOLS/lib64:${LD_LIBRARY_PATH:-}"
 OUT=build-lab
-VERSION="${1:-1.9.15}"
+VERSION="${1:-1.9.16}"
 APK="$OUT/HfpVoipLab-$VERSION.apk"
 mkdir -p "$OUT/classes" "$OUT/dex"
 find "$OUT/classes" "$OUT/dex" -type f -delete

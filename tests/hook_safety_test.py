@@ -47,6 +47,16 @@ public class HookSafetyTest {
   begin("telecom_duplex");android.telecom.Connection d5=new android.telecom.Connection();
   check(!invoke("onCreateOutgoingConnection",null,d5,null,null).returned,"D5 preserves native Telecom outgoing connection");check(d5.voip,"D5 marks native connection as VoIP");
   check(!invoke("handleCall",new HfpClientDeviceBlock(),null,call).returned,"D5 preserves native HFP call registration");route(true);check(AudioSystem.ports.contains(0x80000008)&&AudioSystem.ports.contains(0x20),"D5 exposes duplex SCO ports");end();AudioSystem.writes=0;
+  check(LabModes.car("projection_only")&&LabModes.duplex("projection_only")&&LabModes.bypass("projection_only")&&!LabModes.telecom("projection_only")&&!LabModes.voip("projection_only"),"Isolated mode has projection audio without Telecom/VoIP");
+  HfpClientDeviceBlock isolatedBlock=new HfpClientDeviceBlock();
+  for(boolean wide:new boolean[]{true,false}){
+   sm.mAudioWbs=wide;begin("projection_only");
+   check(invoke("handleCall",isolatedBlock,null,call).returned&&isolatedBlock.mConnections.isEmpty(),"Isolated call is not registered in Telecom");
+   check(invoke("onCreateOutgoingConnection",null,null,null,null).returned,"Isolated mode refuses local Telecom dialing");
+   route(true);check(AudioSystem.ports.contains(0x80000008)&&AudioSystem.ports.contains(0x20),"Isolated mode prepares actual master ports at both rates");
+   check(AudioSystem.wbs.equals(wide?"bt_wbs=on":"bt_wbs=off"),"Isolated mode follows negotiated codec");end();check(AudioSystem.ports.isEmpty(),"Isolated mode cleans up owned ports");
+  }
+  sm.mAudioWbs=true;isolatedBlock.mConnections.put("existing",new Object());begin("projection_only");check(!invoke("handleCall",isolatedBlock,null,call).returned,"Isolated bypass refuses existing Telecom connections");route(true);check(AudioSystem.ports.isEmpty(),"Unavailable bypass does not prepare isolated bridge");end();AudioSystem.writes=0;
   begin("voip");android.telecom.Connection c=new android.telecom.Connection();invoke("onCreateIncomingConnection",null,c,null,null);route(true);check(c.voip,"Early VoIP");check(AudioSystem.writes==0&&AudioSystem.ports.isEmpty(),"A must not touch codec/ports");end();
   begin("wbs");route(true);check(AudioSystem.wbs.equals("bt_wbs=on"),"B WBS applied");end();check(AudioSystem.wbs.equals("bt_wbs=off"),"WBS restored");
   sm.mAudioWbs=false;int writes=AudioSystem.writes;begin("wbs");route(true);check(AudioSystem.writes==writes,"B cannot force WBS after narrow negotiation");end();
@@ -203,6 +213,9 @@ public class MasterAudioRecoveryTest {
  states.put(key,0);SystemClock.time=120000;ensure.invoke(null);Set<Object> scos=(Set<Object>)field("scos").get(null);scos.add(sm);SystemClock.time=130000;ensure.invoke(null);check(HeadsetClientService.connectRequests==2&&HeadsetClientService.cancelRequests==1);
  scos.clear();ensure.invoke(null);HeadsetClientService.audioState=1;SystemClock.time=140000;ensure.invoke(null);SystemClock.time=152000;ensure.invoke(null);HeadsetClientService.audioState=2;sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
  set("selected","telecom_duplex");ensure.invoke(null);set("selected","telecom_aa");HeadsetClientService.audioState=1;SystemClock.time=160000;ensure.invoke(null);SystemClock.time=172000;ensure.invoke(null);calls.clear();sm.handler.drain();check(HeadsetClientService.cancelRequests==1);
+ set("selected","projection_only");set("telecomConfirmed",false);set("bypassConfirmed",true);calls.add(key);states.put(key,0);machines.put(key,sm);HeadsetClientService.audioState=0;SystemClock.time=200000;
+ int before=HeadsetClientService.connectRequests;ensure.invoke(null);check(HeadsetClientService.connectRequests==before+1);
+ set("bypassConfirmed",false);SystemClock.time=300000;ensure.invoke(null);check(HeadsetClientService.connectRequests==before+1);
  System.out.println("PASS production master recovery: state-machine pending cancellation, actual disconnected event required, late callback/connected/owned ports/D5/ended-call preservation");
  }}'''
 SOURCES['com/hfpvoipfix/TelecomEvidenceRaceTest.java']='''package com.hfpvoipfix;

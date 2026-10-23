@@ -56,7 +56,7 @@ public final class RxBridgeService extends Service {
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
             if(LabModes.car(values.get("requested"))){channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));channel.publishNativeSco(NativeScoLease.proof(p,SystemClock.elapsedRealtime()));}
-            if(!"1.9.15".equals(values.get("version")))throw new IOException("Module 1.9.15 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.16".equals(values.get("version")))throw new IOException("Module 1.9.16 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -112,7 +112,8 @@ public final class RxBridgeService extends Service {
             if(stop)return;
             int rate=Integer.parseInt(RxGate.parse(probe).get("rate"));
             AudioManager am=(AudioManager)getSystemService(AUDIO_SERVICE);
-            if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Appel téléphonique local actif : essai refusé.");
+            if(LabModes.isolated(RxGate.parse(probe).get("requested"))&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("AA isolé : un autre usage possède le mode audio. Attendre sa fin.");
+        if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Appel téléphonique local actif : essai refusé.");
             int inputType=tx?AudioDeviceInfo.TYPE_BUILTIN_MIC:AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
             int outputType=tx?AudioDeviceInfo.TYPE_BLUETOOTH_SCO:AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
             // For TX, let Android's MIC source choose the policy's default microphone.
@@ -136,7 +137,8 @@ public final class RxBridgeService extends Service {
             event("OPEN direction="+(tx?"tx":"rx")+" rate="+rate+" input_id="+(inputId<0?"system_default":inputId)+" output_id="+output.getId()+" gain="+(tx?"0.8":"0.35")+" no_audio_saved");
             while(allowed()){
                 long now=SystemClock.elapsedRealtime();if(now-opened>180000)throw new IOException("Limite de sécurité : 3 minutes de réception.");
-                if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
+                if(LabModes.isolated(RxGate.parse(probe).get("requested"))&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("AA isolé : un autre usage possède le mode audio. Attendre sa fin.");
+        if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
                 // Snapshot each route once. MIUI can return null between calls while the
                 // SCO route is being rebuilt; do not dereference a second, fresh lookup.
                 AudioDeviceInfo routedInput=record.getRoutedDevice(),routedOutput=track.getRoutedDevice();
@@ -179,7 +181,7 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.15")
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.16")
             .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
@@ -190,6 +192,7 @@ public final class RxBridgeService extends Service {
         int rate=Integer.parseInt(RxGate.parse(probe).get("rate"));AudioManager am=(AudioManager)getSystemService(AUDIO_SERVICE);
         boolean telecomBridge=LabModes.telecom(RxGate.parse(probe).get("requested"));
         if(telecomBridge){long until=SystemClock.elapsedRealtime()+5000;while(allowed()&&am.getMode()!=AudioManager.MODE_NORMAL&&SystemClock.elapsedRealtime()<until)Thread.sleep(50);if(!allowed())return;if(am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : mode audio normal non confirmé. Activer Gestion des appels et Cadre du sous-système dans LSPosed puis redémarrer.");event("TELECOM_AUDIO_CONFIRMED mode=0");}
+        if(LabModes.isolated(RxGate.parse(probe).get("requested"))&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("AA isolé : un autre usage possède le mode audio. Attendre sa fin.");
         if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Appel téléphonique local actif : essai refusé.");
         boolean carBridge=LabModes.car(RxGate.parse(probe).get("requested"));
         android.content.SharedPreferences trials=getSharedPreferences("aa_trials",0);
@@ -206,6 +209,7 @@ public final class RxBridgeService extends Service {
         int trialIndex=comparing?assigned:0;
         AaAudioTrial profile=AaAudioTrial.at(trialIndex);
         aaTrialNotice=comparing?"Essai "+(trialIndex+1)+"/4 · "+profile.name:"";
+        if(carBridge)event("D6_CALL_PATH isolated="+LabModes.isolated(RxGate.parse(probe).get("requested"))+" telecom_required="+telecomBridge+" call_control="+(telecomBridge?"telecom":"samsung"));
         if(carBridge)event("D6_PROFILE comparison="+comparing+" trial="+(trialIndex+1)+" usage="+profile.usage+" mic_source="+profile.micSource+" session="+audioIdentity);
         if(carBridge)inventory(am);
         Map<String,String> ports=RxGate.parse(probe);
@@ -269,7 +273,8 @@ public final class RxBridgeService extends Service {
                     if(lost&&!focusPaused){rxTrack.pause();rxTrack.flush();focusPaused=true;event("D6_FOCUS playback=paused");}
                     else if(!lost&&focusPaused){rxTrack.play();focusPaused=false;routeLostSince=0;event("D6_FOCUS playback=resumed");}
                 }
-                if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
+                if(LabModes.isolated(RxGate.parse(probe).get("requested"))&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("AA isolé : un autre usage possède le mode audio. Attendre sa fin.");
+        if(am.getMode()==AudioManager.MODE_IN_CALL)throw new IOException("Un appel local a pris le contrôle audio.");
                 if(telecomBridge&&am.getMode()!=AudioManager.MODE_NORMAL)throw new IOException("D5 : Telecom a repris un mode audio incompatible avec le pont.");
                 int nextPhase=diagnostic?AaDiagnosticSchedule.next(phase,now-phaseStart):DuplexSchedule.next(phase,now-phaseStart,progressive);
                 if(nextPhase!=phase){

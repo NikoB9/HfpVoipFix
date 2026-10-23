@@ -50,7 +50,7 @@ final class NativeScoGuard {
   Snapshot s=latest;if(s==null){projection=null;return;}
   try{
    String mode=prop(LabModes.PROP),proof=prop(NativeScoLease.PROP);
-   if(!"telecom_aa".equals(mode)&&!keeper.owns()){projection=null;return;}
+   if(!LabModes.car(mode)&&!keeper.owns()){projection=null;return;}
    boolean allowed=NativeScoLease.allow(mode,prop("ro.product.device"),prop("ro.build.version.release"),prop("debug.hfpvoipfix.native_split"),proof,SystemClock.elapsedRealtime())&&portsPresent(proof);
    Object audio=XposedHelpers.getObjectField(s.broker,"mAudioService");
    int audioMode=(Integer)XposedHelpers.callMethod(audio,"getMode");
