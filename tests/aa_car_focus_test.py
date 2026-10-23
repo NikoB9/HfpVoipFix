@@ -45,7 +45,7 @@ XC_MethodHook.MethodHookParam m=new XC_MethodHook.MethodHookParam();m.thisObject
 }
 lease(4);Object failing=fresh();put(failing,"throwSend",true);request(failing);request(failing);check(sends(failing)==1,"sender errors preserve bound and do not fake pending/grant");
 Object legacy=Class.forName("qvk").getConstructor().newInstance();call("qvk#i",legacy,3);check(get(legacy,"g")==e("xko",5),"legacy is observe-only");
-Object endpoint=Class.forName("jdz").getConstructor().newInstance();put(endpoint,"g",true);Object frame=Class.forName("jef").getConstructor().newInstance();call("jfd#C",endpoint,1L,frame,null);call("jfd#a",endpoint,32773,null);SystemClock.now+=2000;call("jfd#C",endpoint,2L,frame,null);
+Object endpoint=Class.forName("jdz").getConstructor().newInstance();put(endpoint,"g",true);Object frame=Class.forName("jef").getConstructor().newInstance();call("jfd#C",endpoint,1L,frame,null);call("jfd#a",endpoint,32773,null);call("jfd#a",endpoint,32772,null);SystemClock.now+=2000;call("jfd#C",endpoint,2L,frame,null);
 String last=Log.lines.get(Log.lines.size()-1);check(last.contains("submit_calls=2")&&last.contains("started_at_submit_calls=2")&&last.contains("ack_messages_received=1")&&last.contains("audible_unverified=true"),"transport metadata only; ACK arrival not audibility");check(!Log.lines.toString().contains("private.other.app"),"other package names not logged");
 System.out.println("PASS production AA car-focus hook: exact APK exclusion, real MAY_DUCK request once, real response retained, pending/stopped/mode/owner/D5/lease/error exclusions, legacy observe-only and scalar transport windows. No hardware validation.");
 }}

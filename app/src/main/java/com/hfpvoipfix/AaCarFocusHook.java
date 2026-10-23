@@ -93,7 +93,7 @@ final class AaCarFocusHook {
     @Override protected void afterHookedMethod(MethodHookParam p){observeTransport(p.thisObject,Boolean.TRUE.equals(p.getObjectExtra("aa.started")),false,p.hasThrowable());}
    });
    XposedHelpers.findAndHookMethod(endpoint,"a",int.class,java.nio.ByteBuffer.class,new XC_MethodHook(){
-    @Override protected void afterHookedMethod(MethodHookParam p){if(Integer.valueOf(32773).equals(p.args[0]))observeTransport(p.thisObject,false,true,p.hasThrowable());}
+    @Override protected void afterHookedMethod(MethodHookParam p){if(Integer.valueOf(32772).equals(p.args[0]))observeTransport(p.thisObject,false,true,p.hasThrowable());}
    });
    XposedHelpers.findAndHookMethod(endpoint,"w",new XC_MethodHook(){
     @Override protected void afterHookedMethod(MethodHookParam p){try{if("jdz".equals(p.thisObject.getClass().getName())&&proof()!=null)event("event=audio_endpoint_stop started_after="+field(p.thisObject,"g"));}catch(Throwable ignored){}}

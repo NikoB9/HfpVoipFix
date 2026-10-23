@@ -49,7 +49,9 @@ sans prouver à lui seul la cause acoustique de sa coupure.
 Le composant d'émission de cette branche aboutit à `jdz`, sous-classe de `jfd`.
 `jfd.C` soumet les trames au canal lorsqu'il est démarré ; il peut aussi les
 rejeter s'il ne l'est pas. `jfd.a` traite notamment les messages d'acquittement
-32773 et vérifie session et compteurs. La 1.9.14 observe ces frontières sans lire
+32772 et vérifie session et compteurs. La fonction de correspondance `wxw.z`
+convertit cet identifiant brut en constante interne 32773 : ces deux nombres
+ne doivent pas être confondus dans un hook à l’entrée de la méthode. La 1.9.14 observe ces frontières sans lire
 les buffers. Un appel de soumission, même terminé sans exception, reste distinct
 d'une réception distante ; un message ACK observé à l'entrée peut être refusé
 par les vérifications normales. Aucun de ces compteurs ne prouve l'audibilité.

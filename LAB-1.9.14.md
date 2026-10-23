@@ -51,7 +51,7 @@ Le lecteur PCM AA publie `car_focus_hook=exact_iso`, `apk_mismatch` ou
 chargement même si les lignes de démarrage ont quitté logcat.
 
 L'observateur de `jdz`/`jfd` compte les appels de soumission de trames, ceux dont
-le canal était démarré à l'entrée, les messages ACK 32773 reçus à l'entrée de leur
+le canal était démarré à l'entrée, les messages ACK 32772 reçus à l'entrée de leur
 traitement et les exceptions. Il rapporte des fenêtres de deux secondes par
 endpoint et session. Il ne lit ni ne conserve les buffers. ACK reçu n'est pas
 ACK accepté ni son joué ; l'absence de fenêtre ne prouve pas l'absence de trafic
