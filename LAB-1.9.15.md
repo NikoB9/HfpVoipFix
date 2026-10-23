@@ -101,8 +101,8 @@ pas au milieu d'un appel long. D5 conserve sa règle historique.
   conversation voulue puis joindre ce fichier. Même changement pour le firmware.
 - Écriture via MediaStore.Downloads, API disponible sur ce téléphone Android 11.
   Pas de permission générale de stockage, pas d'API de chemin partagé dépréciée.
-  Le fichier n'est publié qu'après fermeture réussie ; toute copie partielle est
-  supprimée en cas d'échec, et le ZIP privé original est conservé. Le fournisseur
+  Le fichier n'est publié qu'après fermeture réussie ; une suppression de la copie partielle est
+  tentée en cas d'échec, et le ZIP privé original est conservé. Le fournisseur
   peut adapter un nom en collision : son nom fait autorité.
 - Les diagnostics AA sont regroupés dans une section repliée **facultative**.
   Chaque bouton explique son objectif, sa durée et les changements avant
@@ -149,3 +149,22 @@ Les quatre profils et les huit étapes ne sont pas demandés à ce stade.
 Référence Android : [MediaStore.Downloads et fichiers possédés par l'application](https://developer.android.com/training/data-storage/shared/media).
 Les sources et limites de l'audit AA/MIUI restent dans
 [AUDIT-STATIQUE-2026-10-23.md](AUDIT-STATIQUE-2026-10-23.md).
+
+## Livraison vérifiée
+
+- Sources APK : commit `4094d240754a8c01a044989b368c879144955bd9`,
+  arbre `cd97aacc932b3fdf3c7326d34405a71c854f7f08`.
+- [Workflow réussi](https://github.com/NikoB9/HfpVoipFix/actions/runs/40017345440),
+  job `120632714474`, artifact `12528184471`, `HfpVoipLab-1.9.15-signed`.
+- APK **258438 octets**, versionCode **78**, SHA-256
+  `32e7a61372c3d3a6cda2abb1bce90a2f47065a6a3e4a133c50914a21876bb10d`.
+- Signature temporaire RSA 3072, v3 vérifiée dans CI puis indépendamment avec
+  ApkVerifier 8.9.1 pour API 30, sans erreur. Certificat SHA-256 :
+  `646150ad8c3356e9cc6cb7ea1bf44df6c8a6519330b6f7dc2d8b7ce1704ed1be`.
+- Alignement zipalign dans CI et contrôle indépendant des offsets ZIP réussis.
+  Archive artifact vérifiée par son digest avant extraction.
+- Signature différente : désinstaller l'ancienne APK, réinstaller, accorder les
+  autorisations, réactiver les cinq cibles LSPosed, puis un seul redémarrage.
+  Conserver le module natif Magisk 1.9.0-persistent.
+- Aucun essai matériel de cette version encore reçu ; la coupure du premier
+  appel n'est pas déclarée corrigée.
