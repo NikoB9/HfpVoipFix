@@ -58,3 +58,22 @@ distincts. Dans le binaire AA audité, `irr.b` utilise `trh.bg` : le capturer
 TTS 5 correspond à l'endpoint GUIDANCE 1, conservé dans `jdz.e`. Un numéro 1
 journalisé depuis `jdz.e` ne désigne donc pas le capturer SYSTEM. Cette
 clarification remplace cette interprétation dans les notes antérieures.
+
+## Livraison vérifiée
+
+- Sources APK : commit `d57c422b433607e0f373088bb7f39e6ac4027dfe`,
+  arbre `279955684a8b4fc2da870fbed5c69d2ce71abdcb`.
+- [Workflow réussi](https://github.com/NikoB9/HfpVoipFix/actions/runs/40024676245),
+  job `120657751460`, artifact `12532601135` (`HfpVoipLab-1.9.16-signed`).
+- APK : **258438 octets**, SHA-256
+  `1f60285f371a6ad2b7a38bbec217a934db6067314b7dfeb719c61659217dc2c9`.
+- Signature v3 vérifiée indépendamment pour API 30 avec ApkVerifier 8.9.1,
+  sans erreur ; certificat SHA-256
+  `f617e3364507126ac6723d152de82c2d4fe06321a08e1392302356ee59933ab2`.
+- Digest artifact, CRC ZIP et alignement des entrées non compressées vérifiés.
+  Le DEX livré contient le nouveau parcours isolé et la version 1.9.16.
+- Signature temporaire différente : désinstaller l'ancienne application,
+  installer cette APK, autoriser le micro et root, réactiver les cinq cibles
+  LSPosed, puis redémarrer une fois. Conserver le runtime natif existant.
+- Tests hôte et compilation réussis ; aucun essai matériel de 1.9.16 encore
+  reçu. Le succès dans l'autoradio reste à établir.
