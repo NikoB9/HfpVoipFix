@@ -58,7 +58,7 @@ public class AaDiagnosticBridgeTest{
  static RxBridgeService service;static String mode;static boolean diagnostic;static int scenario;
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  static void field(String n,Object v){try{Field f=RxBridgeService.class.getDeclaredField(n);f.setAccessible(true);f.set(service,v);}catch(Exception e){throw new RuntimeException(e);}}
- static String status(){return "STATUS version=1.9.16 epoch=42 call_id=1 sco_seq=1 requested="+mode+" applied="+mode+" rate=16000 sco_in_id=70 sco_out_id=74 status_at="+SystemClock.now+" call_count=1 call_active=true sco=1 native_sco=true soft_ports=true telecom_ok=true dirty=false";}
+ static String status(){return "STATUS version=1.9.17 epoch=42 call_id=1 sco_seq=1 requested="+mode+" applied="+mode+" rate=16000 sco_in_id=70 sco_out_id=74 status_at="+SystemClock.now+" call_count=1 call_active=true sco=1 native_sco=true soft_ports=true telecom_ok=true dirty=false";}
  static void reset(boolean diag,boolean local,int which){
   diagnostic=diag;scenario=which;mode=local?"telecom_duplex":"telecom_aa";SystemClock.now=1000;AudioRecord.all.clear();AudioTrack.all.clear();Log.lines.clear();AudioTrack.wrongRoute=which==3;
   service=new RxBridgeService();service.getSharedPreferences("capture",0).edit().putString("phase","running").apply();service.getSharedPreferences("aa_diagnostic",0).edit().putBoolean("enabled",diag).apply();

@@ -16,11 +16,11 @@ final class AaSimHook {
      try{int original=(Integer)p.getResult();long now=SystemClock.elapsedRealtime();
       boolean allow=AaRelayPolicy.allow(prop(LabModes.PROP),prop("ro.product.device"),prop("ro.build.version.release"),prop("debug.hfpvoipfix.native_split"),prop(AaRelayPolicy.PROP),now,original);
       if(allow)p.setResult(TelephonyManager.SIM_STATE_READY);
-      if("telecom_aa".equals(prop(LabModes.PROP))&&now>=nextLog){nextLog=now+5000;
+      if(LabModes.managedCar(prop(LabModes.PROP))&&now>=nextLog){nextLog=now+5000;
        Log.i("HfpVoipFix","LAB AA_SIM_READINESS original="+original+" proxy_applied="+allow+" local_telephony_unchanged=true");}
      }catch(Throwable t){Log.i("HfpVoipFix","LAB AA_SIM_READINESS unavailable="+t.getClass().getSimpleName());}
     }
-   });Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=true version=1.9.16");
+   });Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=true version=1.9.17");
   }catch(Throwable t){Log.i("HfpVoipFix","LAB AA_SIM_READINESS hook_ready=false reason="+t.getClass().getSimpleName());}
  }
 }

@@ -74,7 +74,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         if(LabModes.voip(selected)&&voipHooks!=3){event("UNAVAILABLE mode="+selected+" reason=voip_hooks_missing");selected="observe";}
     }}
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p){
-        if("com.google.android.projection.gearhead".equals(p.packageName)){AaSimHook.install();AaProjectionReadHook.install();AaCarFocusHook.install(p.classLoader,p.appInfo==null?null:p.appInfo.sourceDir);return;}
+        if("com.google.android.projection.gearhead".equals(p.packageName)){AaSimHook.install();AaProjectionReadHook.install();AaCarFocusHook.install(p.classLoader,p.appInfo==null?null:p.appInfo.sourceDir);AaCallPublicationHook.install(p.classLoader,p.appInfo==null?null:p.appInfo.sourceDir);return;}
         if(TelecomLoaderHook.accepts(p.packageName)){if(!"com.android.server.telecom".equals(p.packageName)){NativeScoGuard.install(p.classLoader);ProjectionFocusHook.install(p.classLoader);}TelecomLoaderHook.load(p.packageName,p.classLoader);return;}
         if(!"com.android.bluetooth".equals(p.packageName)||installed)return;
         installed=true;
@@ -163,7 +163,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             service.getDeclaredMethod("dial",device,String.class);service.getDeclaredMethod("acceptCall",device,int.class);service.getDeclaredMethod("terminateCall",device,java.util.UUID.class);
             controlService=service;}catch(Throwable t){error("control_service_missing",t);}
         try{carService=XposedHelpers.findClass("com.android.bluetooth.hfp.HeadsetService",cl);}catch(Throwable ignored){}
-        event("HOOKS version=1.9.16 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
+        event("HOOKS version=1.9.17 route="+routeHook+" calls="+callHook+" bypass="+bypassHook+" voip="+voipHooks);
         // Read-only root-property handshake. No Bluetooth-process property writes or app context needed.
         Timer timer=new Timer("HfpLab-status",true);
         timer.scheduleAtFixedRate(new TimerTask(){String previous="",previousControl=prop("debug.hfpvoipfix.ctrl","");public void run(){
@@ -172,7 +172,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
             synchronized(LOCK){monitorCommunication();}
             String token=prop("debug.hfpvoipfix.probe","");
             if(!token.matches("[a-zA-Z0-9]{1,32}")||token.equals(previous))return;
-            previous=token;synchronized(LOCK){event("STATUS version=1.9.16 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
+            previous=token;synchronized(LOCK){event("STATUS version=1.9.17 token="+token+" pid="+Process.myPid()+" epoch="+epoch+
                 " status_at="+SystemClock.elapsedRealtime()+" call_count="+calls.size()+" call_id="+currentCallId()+" native_sco="+(mtkScoApplied&&softwarePorts)+" ctrl_token="+controlToken+" ctrl_result="+controlResult+" ctrl_error="+controlDetail+" control="+(controlService!=null)+
                 networkStatus+
                 " requested="+LabModes.valid(prop(LabModes.PROP,"observe"))+" applied="+(busy()?selected:"idle")+
@@ -184,7 +184,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         auxiliary.schedule(new TimerTask(){public void run(){try{ensureOutgoingHfpAccount();ensureMasterAudio();readCarNetwork();}catch(Throwable t){error("car_control_tick",t);}}},750,2000);
     }
     private static void ensureOutgoingHfpAccount(){
-        if(!"telecom_aa".equals(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
+        if(!LabModes.managedCar(prop(LabModes.PROP,"observe"))){outgoingHfpSelected=false;return;}
         long now=android.os.SystemClock.elapsedRealtime();
         if(outgoingHfpSelected||now<nextOutgoingAccountAttempt||controlService==null)return;
         nextOutgoingAccountAttempt=now+5000;
@@ -255,7 +255,7 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
         }));
     }
     private static void readCarNetwork(){
-        if(!"telecom_aa".equals(prop(LabModes.PROP,"observe"))){networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";lastNetworkState="";return;}
+        if(!LabModes.managedCar(prop(LabModes.PROP,"observe"))){networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";lastNetworkState="";return;}
         long now=SystemClock.elapsedRealtime();if(now<nextNetworkRead)return;nextNetworkRead=now+2000;
         networkStatus=" master_connected=0 master_service=-1 hfp_default=false network_at=0";
         try{
@@ -295,8 +295,10 @@ public final class HfpVoipFix implements IXposedHookLoadPackage {
                     if(busy())throw new IllegalStateException("call_already_active");
                     result=XposedHelpers.callMethod(service,"dial",device,p[2]);controlResult=result==null?"rejected":"queued";
                 }else if(p[1].equals("answer")){
+                    if(LabModes.isolated(mode)&&(calls.size()!=1||(!callStates.containsValue(4)&&!callStates.containsValue(5))))throw new IllegalStateException("single_ringing_call_required");
                     result=XposedHelpers.callMethod(service,"acceptCall",device,0);controlResult=Boolean.TRUE.equals(result)?"queued":"rejected";
                 }else{
+                    if(LabModes.isolated(mode)&&calls.size()!=1)throw new IllegalStateException("single_call_required");
                     result=XposedHelpers.callMethod(service,"terminateCall",device,(Object)null);controlResult=Boolean.TRUE.equals(result)?"queued":"rejected";
                 }
             }catch(Throwable t){controlResult="unavailable";String message=t.getMessage();controlDetail=message!=null&&message.matches("[a-z_]+")?message:"service_call_failed";event("CONTROL_ERROR type="+t.getClass().getSimpleName()+" reason="+controlDetail);}

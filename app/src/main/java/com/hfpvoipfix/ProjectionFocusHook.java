@@ -71,7 +71,7 @@ final class ProjectionFocusHook {
    Timer timer=new Timer("HfpLab-projection-focus",true);
    timer.schedule(new TimerTask(){public void run(){poll();}},500,500);
    enabled=true;
-   event("hook_ready=true version=1.9.16 policy=bounded_AA_transient_coexistence");
+   event("hook_ready=true version=1.9.17 policy=bounded_AA_transient_coexistence");
   }catch(Throwable t){event("hook_ready=false reason="+t.getClass().getSimpleName());}
  }
  static void poll(){

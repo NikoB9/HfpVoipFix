@@ -31,7 +31,7 @@ final class TelecomAudioHook {
             try{XposedHelpers.findAndHookMethod(AudioManager.class,"requestAudioFocusForCall",int.class,int.class,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     Object machine=focusOwner.get();
-                    if(machine==null||!"telecom_aa".equals(prop(LabModes.PROP)))return;
+                    if(machine==null||!LabModes.managedCar(prop(LabModes.PROP)))return;
                     try{
                         if(Integer.valueOf(AudioManager.STREAM_VOICE_CALL).equals(p.args[0])&&eligible(machine,3)){
                             // An incoming call may still own the previous ringing lock.
@@ -47,7 +47,7 @@ final class TelecomAudioHook {
                     try{if(eligible(machine,(Integer)p.args[0])){p.args[0]=AudioManager.MODE_NORMAL;event("OVERRIDE requested=3 applied=0 account=HFP single_call=true");}}
                     catch(Throwable t){event("UNAVAILABLE reason="+t.getClass().getSimpleName());}
                 }
-            });event("HOOK_READY version=1.9.16");CarProjectionHook.install(loader);
+            });event("HOOK_READY version=1.9.17");CarProjectionHook.install(loader);VehicleCallPublicationHook.install(loader);
         }catch(Throwable t){event("UNAVAILABLE install="+t.getClass().getSimpleName());}
     }
     private static boolean eligible(Object machine,int requested){

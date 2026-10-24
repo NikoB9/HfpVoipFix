@@ -10,7 +10,7 @@ final class CarProjectionHook {
    Class<?> machine=XposedHelpers.findClass("com.android.server.telecom.CallAudioRouteStateMachine",loader);
    XposedHelpers.findAndHookMethod(machine,"setBluetoothOn",String.class,new XC_MethodHook(){
     @Override protected void beforeHookedMethod(MethodHookParam p){
-     if(!"telecom_aa".equals(prop(LabModes.PROP)))return;
+     if(!LabModes.managedCar(prop(LabModes.PROP)))return;
      String stage="audio_manager";
      try{
       Object manager=XposedHelpers.getObjectField(p.thisObject,"mCallAudioManager");
