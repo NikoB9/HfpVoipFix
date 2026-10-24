@@ -77,3 +77,23 @@ passer un appel depuis Android Auto, vérifier le son pendant 30 secondes puis
 raccrocher depuis Android Auto. Si possible vérifier aussi un appel entrant.
 Enregistrer le rapport dans Téléchargements. En cas de retour de la coupure,
 revenir hors appel à AA isolé dans la même APK, sans réinstallation.
+
+## Livraison vérifiée
+
+- Sources APK : commit `e27d069dc9302ae6e3e07992cf3f2a35ae44b44e`,
+  arbre `5c13c1f893fa736e04bfdfdae0ff7ec44a63d0e3`.
+- [Workflow réussi](https://github.com/NikoB9/HfpVoipFix/actions/runs/40083850973),
+  job `120842663830`, artifact `12555888090` (`HfpVoipLab-1.9.17-signed`).
+- APK : **270726 octets**, versionCode **80**, SHA-256
+  `83a0a87610c103a5d0da5543b97afab7c5d3f0d12aea43f0ed0cadaa57683a4e`.
+- Signature v3 vérifiée indépendamment pour Android 11/API 30 avec
+  ApkVerifier 8.9.1, sans erreur ; certificat SHA-256
+  `ab23ec2f017deeae6620d01fe0edda22c052338c3e56c32334bc50c1a9be1f9e`.
+- Digest artifact, CRC ZIP et alignement des entrées non compressées vérifiés.
+  Les nouveaux hooks, le contrôleur et le parcours sont présents dans le DEX livré.
+- Signature temporaire différente : désinstaller l'ancienne application,
+  installer, autoriser micro/root, réactiver les cinq cibles LSPosed habituelles
+  (`com.android.bluetooth`, `com.android.server.telecom`, `android`, `system`,
+  `com.google.android.projection.gearhead`), puis redémarrer une fois.
+- Conserver le module natif Magisk 1.9.0-persistent. Ni ces tests ni la signature
+  ne prouvent le fonctionnement matériel de D6 contrôlable, encore à vérifier.
