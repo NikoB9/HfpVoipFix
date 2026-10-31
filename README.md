@@ -1,5 +1,15 @@
 # HfpVoipFix
 
+## Relais d’appels 1.9.18
+
+[**Télécharger l’APK signée et ses sommes de contrôle**](https://github.com/NikoB9/HfpVoipFix/releases/tag/v1.9.18) · [Notes et installation](LAB-1.9.18.md)
+
+Version archivée : interface simplifiée, commandes Android Auto, démarrage automatique après activation initiale et déverrouillage, diagnostics facultatifs. Cible : Redmi Note 8 Pro / Android 11, root et LSPosed ; conserver le runtime Magisk 1.9.0-persistent. Le microphone utilisé reste celui du Redmi. Le démarrage MIUI et la compatibilité avec d’autres autoradios restent à vérifier sur le matériel.
+
+L’APK de la Release est identique à celle du build `41190817076` : aucune recompilation ni changement de signature pour cet archivage. Les sources correspondantes sont repérées par le tag `v1.9.18`. Les sources, tests, scripts et notes continuent d’être conservés sur `main`.
+
+Les sections ci-dessous décrivent les travaux historiques.
+
 Experimental LSPosed module for Android 11 / MediaTek HFP Client audio routing.
 
 ## v1.3.0 development build

@@ -1,0 +1,82 @@
+name: Archive signed 1.9.18 release
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/archive-release.yml', 'releases/v1.9.18.md']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: archive-release-1.9.18
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Verify existing signed artifact and publish permanent release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: NikoB9/HfpVoipFix
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$GH_REPO"
+          SOURCE_SHA=2e0605cdb971f193ef8bc09b6c5b7ded59e0f6ff
+          TAG=v1.9.18
+          export RELEASE_FILES="$RUNNER_TEMP/release-1.9.18"
+          mkdir -p "$RELEASE_FILES" "$RUNNER_TEMP/release-check"
+          gh api repos/$GH_REPO/actions/runs/41190817076 > "$RUNNER_TEMP/source-run.json"
+          gh api repos/$GH_REPO/actions/artifacts/13038528447 > "$RUNNER_TEMP/source-artifact.json"
+          gh api repos/$GH_REPO/actions/artifacts/13038528447/zip > "$RUNNER_TEMP/source-artifact.zip"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,zipfile
+          temp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          run=json.loads((temp/'source-run.json').read_text())
+          artifact=json.loads((temp/'source-artifact.json').read_text())
+          source='2e0605cdb971f193ef8bc09b6c5b7ded59e0f6ff'
+          assert run['head_sha']==source and run['conclusion']=='success'
+          assert artifact['id']==13038528447 and artifact['name']=='HfpVoipLab-1.9.18-signed' and not artifact['expired']
+          assert artifact['workflow_run']['head_sha']==source
+          data=(temp/'source-artifact.zip').read_bytes()
+          assert hashlib.sha256(data).hexdigest()=='6e7cf2e50777666edf74d46b6a796be1789817c45fd8f166870b1516d421f534'
+          wanted={'HfpVoipLab-1.9.18.apk','signature.txt','alignment.txt','manifest.txt','build-signing-note.txt'}
+          output=pathlib.Path(os.environ['RELEASE_FILES'])
+          with zipfile.ZipFile(temp/'source-artifact.zip') as archive:
+              assert archive.testzip() is None
+              paths={name:('build-signing-note.txt' if name=='build-signing-note.txt' else 'build-lab/'+name) for name in wanted}
+              assert set(archive.namelist())==set(paths.values())
+              for name in sorted(wanted):
+                  assert archive.getinfo(paths[name]).file_size < 1000000
+                  (output/name).write_bytes(archive.read(paths[name]))
+          apk=(output/'HfpVoipLab-1.9.18.apk').read_bytes()
+          assert len(apk)==287110 and hashlib.sha256(apk).hexdigest()=='ba77d2df1d8c1212e40a07606e09f9bfd77a44eafdf0fb96b8f0aa8b2f419b06'
+          assert "versionCode='81'" in (output/'manifest.txt').read_text()
+          assert 'Verified using v3 scheme (APK Signature Scheme v3): true' in (output/'signature.txt').read_text()
+          assert '24950273e8b6c2d8914fd5dbef4f4bab63f73536b38bfaea3f51ce1f30a998d0' in (output/'signature.txt').read_text()
+          (output/'SHA256SUMS').write_text(''.join(hashlib.sha256((output/name).read_bytes()).hexdigest()+'  '+name+'\n' for name in sorted(wanted)))
+          print('Original artifact, source commit, APK digest, version and signature metadata verified.')
+          PY
+          if gh api repos/$GH_REPO/git/ref/tags/$TAG > "$RUNNER_TEMP/release-tag.json" 2>/dev/null; then
+            test "$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/release-tag.json"))["object"]["sha"])')" = "$SOURCE_SHA"
+          else
+            gh api --method POST repos/$GH_REPO/git/refs -f ref=refs/tags/$TAG -f sha="$SOURCE_SHA" > /dev/null
+          fi
+          if ! gh release view "$TAG" --json isDraft > "$RUNNER_TEMP/release-state.json" 2>/dev/null; then
+            gh release create "$TAG" --verify-tag --draft --title 'Relais d’appels 1.9.18' --notes-file releases/v1.9.18.md
+          fi
+          gh release view "$TAG" --json assets --jq '.assets[].name' > "$RUNNER_TEMP/existing-assets.txt"
+          for file in "$RELEASE_FILES"/*; do
+            name="$(basename "$file")"
+            if grep -Fxq "$name" "$RUNNER_TEMP/existing-assets.txt"; then
+              gh release download "$TAG" --pattern "$name" --dir "$RUNNER_TEMP/release-check"
+              cmp "$file" "$RUNNER_TEMP/release-check/$name"
+            else
+              gh release upload "$TAG" "$file"
+            fi
+          done
+          # Publish only after every asset has been uploaded; no existing asset is overwritten.
+          if test "$(gh release view "$TAG" --json isDraft --jq '.isDraft')" = true; then
+            gh release edit "$TAG" --draft=false --latest
+          fi
+          gh release view "$TAG" --json url,tagName,isDraft,assets
