@@ -29,9 +29,9 @@ public final class RxBridgeService extends Service {
         if(i!=null&&i.getBooleanExtra("autonomous",false)){autonomous=true;autonomousActive=true;}
         if(i!=null&&"reconfigure".equals(i.getAction())){event("RECONFIGURE outside_call=true");stop=true;permitted=false;if(worker==null)stopSelf();return START_NOT_STICKY;}
         String mode=i==null?"":i.getStringExtra("mode");boolean tx="soft_tx".equals(mode);
-        String title=tx?"HFP · essai micro vers Samsung":LabModes.duplex(mode)?"HFP · son + micro":"HFP · réception vers Redmi";
+        String title=autonomous?"Relais d’appels":tx?"HFP · essai micro vers Samsung":LabModes.duplex(mode)?"HFP · son + micro":"HFP · réception vers Redmi";
         startForeground(705,new Notification.Builder(this,"rx").setSmallIcon(android.R.drawable.ic_media_play).setContentTitle(title)
-            .setContentText("Pont actif pendant la session").addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).setOngoing(true).build());
+            .setContentText(autonomous?"En attente ou en cours d’appel":"Pont actif pendant la session").setGroup("calls_relay").addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).setOngoing(true).build());
         if(i==null||"stop".equals(i.getAction())){event("STOP_REQUEST source=service_action");if(autonomous)getSharedPreferences("relay",0).edit().putBoolean("enabled",false).apply();getSharedPreferences("rx",0).edit().putBoolean("auto_paused",true).apply();stop=true;permitted=false;if(worker==null)stopSelf();return START_NOT_STICKY;}
         if(i.getBooleanExtra("automatic",false)&&getSharedPreferences("rx",0).getBoolean("auto_paused",false)){stopSelf();return START_NOT_STICKY;}
         if(worker==null){worker=new Thread(this::runBridge,"hfp-software-sco-bridge");worker.start();}return START_NOT_STICKY;
@@ -56,7 +56,7 @@ public final class RxBridgeService extends Service {
             getSharedPreferences("capture",0).edit().putString("probe",p).putLong("probe_at",System.currentTimeMillis()).apply();
             Map<String,String> values=RxGate.parse(p);
             if(LabModes.car(values.get("requested"))){channel.publishAaReadiness(AaRelayPolicy.proof(p,SystemClock.elapsedRealtime()));channel.publishNativeSco(NativeScoLease.proof(p,SystemClock.elapsedRealtime()));}
-            if(!"1.9.17".equals(values.get("version")))throw new IOException("Module 1.9.17 non chargé : redémarrage LSPosed nécessaire.");
+            if(!"1.9.18".equals(values.get("version")))throw new IOException("Module 1.9.18 non chargé : redémarrage LSPosed nécessaire.");
             if(first){first=false;mode=values.get("requested");continuous=LabModes.duplex(mode)&&!"soft_duplex_test".equals(mode);if(LabModes.duplex(mode)){String nativeTrial=Root.command("getprop debug.hfpvoipfix.native_split",1000,4).trim();event("NATIVE_TRIAL marker="+Privacy.clean(nativeTrial));if(!"1.7.22-one-boot".equals(nativeTrial)&&!"1.9.0-persistent".equals(nativeTrial))throw new IOException("Duplex : le patch natif 1.7.22 doit être actif pour ce démarrage. Réactiver ce module dans Magisk avant de redémarrer.");}if(!"false".equals(values.get("busy"))||!LabModes.softwareBridge(mode))throw new IOException("Préparation hors appel après application de D2, D3, D4 ou D5.");event("ARM_CONFIRMED direction="+mode);}
             if(activeIdentity==null){
                 if(!mode.equals(values.get("requested")))throw new IOException("Mode modifié pendant la préparation automatique.");
@@ -181,8 +181,8 @@ public final class RxBridgeService extends Service {
         status(message);if(message.equals(lastNotice))return;lastNotice=message;
         PendingIntent cancel=PendingIntent.getService(this,0,new Intent(this,RxBridgeService.class).setAction("stop"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(705,new Notification.Builder(this,"rx")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("HFP · audio 1.9.17")
-            .setContentText(message).setOnlyAlertOnce(true).setOngoing(true)
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentTitle(autonomous?"Relais d’appels":"Diagnostic audio").setGroup("calls_relay")
+            .setContentText(autonomous&&!aaDiagnosticNotice&&aaTrialNotice.isEmpty()?"Appel en cours":message).setOnlyAlertOnce(true).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Arrêter",cancel).build()).build());
     }
     private void runDuplexBridge(boolean progressive)throws Exception{

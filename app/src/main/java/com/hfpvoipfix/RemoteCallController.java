@@ -14,7 +14,7 @@ final class RemoteCallController {
   boolean published=false;
   try{
    String status=LabProbe.read(context);Map<String,String> p=RxGate.parse(status);
-   if(!"1.9.17".equals(p.get("version"))||!"true".equals(p.get("control")))throw new IOException("Module de commandes 1.9.17 indisponible.");
+   if(!"1.9.18".equals(p.get("version"))||!"true".equals(p.get("control")))throw new IOException("Module de commandes 1.9.18 indisponible.");
    if(!LabModes.isolated(p.get("requested")))throw new IOException("Ces commandes directes sont réservées au relais AA isolé. Pour D5/D6 contrôlable, utiliser Téléphone.");
    if("dial".equals(action)&&(!"false".equals(p.get("busy"))||!"false".equals(p.get("dirty"))))throw new IOException("Attendre la fin de l’appel et du nettoyage.");
    if("dial".equals(action)&&(!RelayService.enabled(context)||!LabModes.isolated(RelayService.mode(context))||!RxBridgeService.alive||!context.getSharedPreferences("rx",0).getBoolean("armed",false)))throw new IOException("Activer AA isolé et attendre le relais prêt.");

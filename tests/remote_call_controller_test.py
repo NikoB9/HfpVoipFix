@@ -12,7 +12,7 @@ files={
 'com/hfpvoipfix/ControllerTest.java':'''package com.hfpvoipfix;import java.util.*;import java.util.concurrent.*;import android.content.Context;
 public class ControllerTest{
  public static boolean armed=true;static boolean block;static String token="none",result="queued",mode="projection_only";static List<String> commands=new ArrayList<>();static CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);
- static String status(){return "STATUS version=1.9.17 control=true requested="+mode+" busy=false dirty=false ctrl_token="+token+" ctrl_result="+result+" ctrl_error=fixture";}
+ static String status(){return "STATUS version=1.9.18 control=true requested="+mode+" busy=false dirty=false ctrl_token="+token+" ctrl_result="+result+" ctrl_error=fixture";}
  static void check(boolean b,String s){if(!b)throw new AssertionError(s);}interface Op{void run()throws Exception;}
  static void refuses(Op o)throws Exception{try{o.run();throw new AssertionError("expected refusal");}catch(java.io.IOException expected){}}
  public static void main(String[]args)throws Exception{

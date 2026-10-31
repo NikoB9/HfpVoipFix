@@ -37,7 +37,7 @@ public final class ModeActivity extends Activity {
     private interface CheckedTask{void run()throws Exception;}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         ScrollView scroll=new ScrollView(this);LinearLayout l=new LinearLayout(this);l.setOrientation(1);int pad=(int)(18*getResources().getDisplayMetrics().density);l.setPadding(pad,pad,pad,pad);scroll.addView(l);LinearLayout root=l;
-        text(l,"HFP · 1.9.17",27);text(l,"Les appels du Samsung sur le Redmi",16);
+        text(l,"HFP · 1.9.18",27);text(l,"Les appels du Samsung sur le Redmi",16);
         status=new TextView(this);status.setTextSize(15);l.addView(status);
         notice=new TextView(this);notice.setTextSize(15);l.addView(notice);
         probeButton=button(l,"Vérifier root et module Bluetooth",()->task(()->{String p=LabProbe.read(this);requested=Root.command("getprop "+LabModes.PROP,1000,4).trim();ui.post(()->toast("Réponse récente reçue du processus Bluetooth."));}));
@@ -105,7 +105,7 @@ public final class ModeActivity extends Activity {
         task(()->{
             String p=RxBridgeService.alive?prefs().getString("probe",""):LabProbe.read(this);
             if(RxBridgeService.alive&&System.currentTimeMillis()-prefs().getLong("probe_at",0)>4000)throw new IOException("État Bluetooth périmé : attendre une réponse récente.");
-            if(!p.contains("version=1.9.17 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.17 chargé après redémarrage.");
+            if(!p.contains("version=1.9.18 ")||!p.contains(" control=true "))throw new IOException("Commandes HFP indisponibles : vérifier le module 1.9.18 chargé après redémarrage.");
             if(action.equals("dial")&&p.contains(" busy=true "))throw new IOException("Un appel est déjà actif.");
             if(action.equals("dial")&&LabModes.softwareBridge(RxGate.parse(p).get("requested"))){
                 long readyUntil=SystemClock.elapsedRealtime()+10000;
@@ -132,7 +132,7 @@ public final class ModeActivity extends Activity {
     private void applyMode(){final String choice=selectedMode();BridgeJournal.write(getFilesDir(),"MODE_APPLY_REQUEST choice="+choice);
         task(()->{
             String probe=LabProbe.read(this);
-            if(!probe.contains("version=1.9.17 "))throw new IOException("Ancien module encore chargé : installer 1.9.17 puis redémarrer le téléphone.");
+            if(!probe.contains("version=1.9.18 "))throw new IOException("Ancien module encore chargé : installer 1.9.18 puis redémarrer le téléphone.");
             if(!probe.contains(" busy=false "))throw new IOException("Appel ou SCO actif : attendre le raccrochage complet.");
             if(!choice.equals("observe")&&probe.contains(" dirty=true "))throw new IOException("Nettoyage audio incomplet : exporter et arrêter les essais.");
             if(!choice.equals("observe")&&(!probe.contains(" route=true ")||!probe.contains(" calls=true ")))throw new IOException("Hooks de suivi indisponibles : seule Observation est autorisée.");
@@ -144,7 +144,6 @@ public final class ModeActivity extends Activity {
                 long until=SystemClock.elapsedRealtime()+5000;while(RxBridgeService.alive&&SystemClock.elapsedRealtime()<until)Thread.sleep(50);
                 if(RxBridgeService.alive)throw new IOException("Pont précédent en cours de fermeture.");
             }
-            if(LabModes.controlled(choice)&&!AaCarFocusHook.exactApk(getPackageManager().getApplicationInfo("com.google.android.projection.gearhead",0).sourceDir))throw new IOException("D6 contrôlable requiert la version Android Auto auditée. Utiliser AA isolé.");
             String answer=Root.command("setprop "+LabModes.PROP+" "+choice+" && getprop "+LabModes.PROP,1000,5).trim();
             if(!choice.equals(answer))throw new IOException("Mode non confirmé par getprop");
             BridgeJournal.write(getFilesDir(),"MODE_APPLY_CONFIRMED choice="+choice);requested=choice;getSharedPreferences("rx",0).edit().putBoolean("auto_paused",false).apply();

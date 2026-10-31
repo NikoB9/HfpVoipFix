@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hfpvoipfix"
-    android:versionCode="80"
-    android:versionName="1.9.17-lab">
+    android:versionCode="81"
+    android:versionName="1.9.18-lab">
 
     <uses-sdk
         android:minSdkVersion="30"
@@ -17,16 +17,18 @@
         android:allowBackup="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:icon="@drawable/ic_launcher"
-        android:label="HFP VoIP Lab">
+        android:label="Relais d’appels">
 
         <activity android:name=".RelayActivity" android:exported="true" android:configChanges="orientation|screenSize"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+        <activity android:name=".DiagnosticsActivity" android:exported="false" />
+        <activity android:name=".MaintenanceActivity" android:exported="false" />
         <activity android:name=".ModeActivity" android:exported="false" android:configChanges="orientation|screenSize" />
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Laboratoire HFP Android 11 : modes dynamiques et diagnostic intégré" />
+            android:value="Relais des appels du Samsung vers le Redmi et Android Auto" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />
